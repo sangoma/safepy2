@@ -15,10 +15,10 @@ described documentation. Care it taken to try and attach documentation
 to `__doc__` fields where it's provided, so the resulting wrapper
 should be fairly well documented internally.
 
-```lang=python
+~~~python
 >>> import safepy
 >>> api = safepy.api('example-profile')
-```
+~~~
 
 The resulting `api` object gives us a window into the product of
 interest.
@@ -31,18 +31,18 @@ There are two required fields for creating a new sip profile: `sip-ip`
 and `sip-port`. The `sip-ip` field has to be the name of the ip
 object, so first we have to find it:
 
-```
+~~~
 >>> sip_ip = api.network.ip.list({'address': '198.51.100.5'})
 >>> sip_ip
 [u'ip_3']
-```
+~~~
 
 Then we feed this information to create a new profile:
 
-```lang=python
+~~~python
 >>> profile = api.sip.profile.create('example', {'sip-ip': sip_ip[0],
 ...                                              'sip-port': 5080})
-```
+~~~
 
 Remember to apply changes (see below) when done.
 
@@ -50,14 +50,52 @@ Remember to apply changes (see below) when done.
 
 Listing profiles is simple:
 
-```lang=python
+~~~python
 >>> api.sip.profile.list()
 [u'example-profile']
-```
+~~~
 
-### Applying changes
+### Accessing attributes of a profile
 
-TODO
+A getitem interface is exposed for fetching objects.
+
+~~~python
+>>> profile = api.sip.profile['example-profile']
+~~~
+
+From there, there are currently two ways of accessing attributes of
+that profile:
+
+~~~python
+>>> profile.sip_ip
+u'ip_3'
+>>> profile['sip-ip']
+u'ip_3'
+>>> profile.retrieve()['sip-ip']
+u'ip_3'
+~~~
+
+Behind the scenes, a mapping between attributes exposed from NSC are
+mapped to valid python typenames (invalid characters are mapped to
+'_').
+
+### Applying Changes
+
+Once we're all done, we still have to apply our changes to make them
+live:
+
+~~~python
+>>> api.apply_changes()
+~~~
+
+Optionally, you can use (abuse) context managers to automatically call
+`apply_changes`:
+
+~~~python
+>>> api.sip.profile['example-profile'].stop()
+>>> with api:
+...    api.sip.profile.delete('example-profile')
+~~~
 
 ## Roadmap
 
