@@ -7,7 +7,7 @@
 
 import re
 import keyword
-from .url import url_builder, do_get, do_post
+from .url import url_builder
 from .parser import parse
 
 
@@ -55,9 +55,9 @@ def make_docstring(description):
 
 
 # {{{ Make Functions
-def make_list(url):
+def make_list(ub, nodeid):
     def list(self, filter=None):
-        response = do_get(url)
+        response = ub.get('api', nodeid)
 
         # if no filter was provided, bail out now returning everything
         if filter is None:
@@ -111,15 +111,15 @@ def make_setter(attr):
     return setter
 
 
-def make_get_method(url):
+def make_get_method(ub, nodeid):
     def get(self):
-        return do_get(url)
+        return ub.get('api', nodeid)
     return get
 
 
-def make_post_method(url):
+def make_post_method(ub, nodeid):
     def post(self, data={}):
-        do_post(url, data)
+        return ub.post('api', nodeid)
     return post
 
 
@@ -138,7 +138,7 @@ def make_repr(fun):
 # }}}
 
 
-OVERRIDDEN = {'list': make_list}
+OVERRIDES = {'list': make_list}
 
 COLLECTION_METHODS = {'create': make_create,
                       'retrieve': make_retrieve,
@@ -156,15 +156,13 @@ def compile_methods(ast, ub, collection=False):
 
     namespace = {}
     for node in ast:
-        url = ub.url('api', node.tag)
-
-        if node.tag in OVERRIDDEN:
-            method = OVERRIDDEN[node.tag](url)
+        if node.tag in OVERRIDES:
+            method = OVERRIDES[node.tag](ub, node.tag)
         elif collection and node.tag in COLLECTION_METHODS:
             method = COLLECTION_METHODS[node.tag](ub)
         else:
             request = node['request']
-            method = HTTP_REQUEST[request](url)
+            method = HTTP_REQUEST[request](ub, node.tag)
             method.__name__ = make_typename(node.tag)
 
         method.__doc__ = make_docstring(node.get('description', None))

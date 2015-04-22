@@ -75,12 +75,14 @@ class UrlBuilder(object):
 
     def get(self, prefix, method=None):
         url = self.url(prefix, method)
-        return do_get(url)
+        return unpack_rest_response(requests.get(url))
 
     def post(self, prefix, method=None, data={}):
         url = self.url(prefix, method)
         headers = {'Content-Type': 'application/json'}
-        return do_post(url, data)
+        return unpack_rest_response(requests.post(url,
+                                                  data=json.dumps(data),
+                                                  headers=headers))
 
 
 def url_builder(host, port=80, scheme='http'):
@@ -109,13 +111,3 @@ def get_docs(host, port=80, scheme='http'):
     r = requests.get(ub.url('doc'))
     r.raise_for_status()
     return r.json()
-
-
-def do_get(url):
-    return unpack_rest_response(requests.get(url))
-
-
-def do_post(url, data={}):
-    headers = {'Content-Type': 'application/json'}
-    return unpack_rest_response(requests.post(url, data=json.dumps(data),
-                                              headers=headers))
