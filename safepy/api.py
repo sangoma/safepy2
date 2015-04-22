@@ -123,18 +123,30 @@ def make_post_method(ub, nodeid):
     return post
 
 
-def make_getitem(node, ub):
+def make_getchild(node, ub):
     def __getitem__(self, key):
         return compile_child(node, ub(key))
     return __getitem__
 
 
-def make_repr(fun):
+def make_repr(func):
     def __repr__(self):
         'x.__repr__() <==> repr(x)'
         return '{}({!r})'.format(self.__class__.__name__,
-                                 getattr(self, fun)())
+                                 getattr(self, func)())
     return __repr__
+
+
+def make_getitem():
+    def __getitem__(self, key):
+        return self.retrieve()[key]
+    return __getitem__
+
+
+def make_setitem():
+    def __setitem__(self, key, value):
+        self.update({key: value})
+    return __setitem__
 # }}}
 
 
@@ -201,6 +213,9 @@ def compile_child(node, ub):
 
     if 'retrieve' in namespace:
         namespace['__repr__'] = make_repr('retrieve')
+        namespace['__getitem__'] = make_getitem()
+    if 'update' in namespace:
+        namespace['__setitem__'] = make_setitem()
 
     return type(typename, (), namespace)()
 
@@ -209,7 +224,7 @@ def compile_collection(node, ub):
     typename, namespace = object_template(node)
 
     namespace.update(compile_methods(node.methods, ub, True))
-    namespace['__getitem__'] = make_getitem(node, ub)
+    namespace['__getitem__'] = make_getchild(node, ub)
 
     if 'list' in namespace:
         namespace['__repr__'] = make_repr('list')
