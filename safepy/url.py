@@ -47,9 +47,10 @@ class UrlBuilder(object):
     a path and allows itself to be cloned to append more information.
     '''
 
-    def __init__(self, base, *segments):
+    def __init__(self, base, session=None, segments=None):
         self.base = base
-        self.segments = segments
+        self.session = session or requests.Session()
+        self.segments = segments or ()
 
     def __call__(self, *segments):
         '''Create a new copy of the url builder with more segments
@@ -59,7 +60,7 @@ class UrlBuilder(object):
         '''
 
         segments = self.segments + segments
-        return UrlBuilder(self.base, *segments)
+        return UrlBuilder(self.base, self.session, segments)
 
     def url(self, prefix, method=None):
         '''Render a specific url to string.
@@ -74,15 +75,15 @@ class UrlBuilder(object):
         return urlparse.urljoin(self.base, '/'.join(segments))
 
     def get(self, prefix, method=None):
-        url = self.url(prefix, method)
-        return unpack_rest_response(requests.get(url))
+        data = self.session.get(self.url(prefix, method))
+        return unpack_rest_response(data)
 
     def post(self, prefix, method=None, data={}):
-        url = self.url(prefix, method)
         headers = {'Content-Type': 'application/json'}
-        return unpack_rest_response(requests.post(url,
-                                                  data=json.dumps(data),
-                                                  headers=headers))
+        postdata = self.session.post(self.url(prefix, method),
+                                     data=json.dumps(data),
+                                     headers=headers)
+        return unpack_rest_response(postdata)
 
 
 def url_builder(host, port=80, scheme='http'):
