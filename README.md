@@ -6,6 +6,21 @@ exposed functionality and this library reads it, parses it, and
 generates a set of classes wrapping that functionality to expose it to
 python.
 
+This library is still very much a work-in-progress. While what's here
+currently should be enough to do useful configuration of a product,
+its much too low-level to be useful. Consumers of this API have to be
+aware of low level details such as required fields, valid inputs, or
+preconditions for certain operations (such as that a profile must be
+stopped before it can be deleted) and the error messages when hitting
+these cases will be unintuitive.
+
+I want to grow a set of high-level wrappings that handle the
+intricacies of profiles and trunks and dialplans instead of having to
+rely on the low-level APIs.
+
+Feel free to give feedback on the quality of api generation and/or the
+wrappings.
+
 ## Talking to Products
 
 The `safepy.api` library provides a quickly and easy way of getting
@@ -71,16 +86,15 @@ that profile:
 u'ip_3'
 >>> profile['sip-ip']
 u'ip_3'
->>> profile.retrieve()['sip-ip']
-u'ip_3'
 ~~~
 
 Behind the scenes, a mapping between attributes exposed from NSC are
 mapped to valid python typenames (invalid characters are mapped to
-'_').
+'`_`').
 
-### Applying Changes
+### Commiting changes
 
+All the changes we've done thus far are staged without being applied.
 Once we're all done, we still have to apply our changes to make them
 live:
 
