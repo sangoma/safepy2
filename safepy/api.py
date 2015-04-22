@@ -233,6 +233,33 @@ def compile_objects(ast, ub):
     return {n.tag: compile_object(n, ub) for n in ast}
 
 
+class API(object):
+    def apply_changes(self):
+        state = self.nsc.configuration.status()
+
+        # Attempt to just reload the NSC configuration
+        if state['modified'] and state['can_reload']:
+            self.nsc.configuration.reload()
+            state = self.nsc.configuration.status()
+
+        # Changes may still now require us to restart the nsc service
+        # to apply
+        if state['modified']:
+            self.nsc.service.stop()
+            self.nsc.configuration.apply()
+            self.nsc.service.start()
+            state = self.nsc.configuration.status()
+
+        if state['modified']:
+            raise RuntimeError('Failed to apply pending changes')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.apply_changes()
+
+
 def api(host, port=80, scheme='http'):
     '''Connects to a remote device, download the json specification
     describing the supported rest calls and dynamically compile a new
@@ -253,5 +280,5 @@ def api(host, port=80, scheme='http'):
     typename = make_typename(host.partition('.')[0].capitalize())
     namespace = compile_objects(ast, ub)
 
-    product_cls = type(typename, (), namespace)
+    product_cls = type(typename, (API,), namespace)
     return product_cls()
