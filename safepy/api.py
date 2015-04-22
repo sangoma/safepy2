@@ -249,7 +249,7 @@ def compile_objects(ast, ub):
 
 
 class API(object):
-    def apply_changes(self):
+    def commit(self):
         state = self.nsc.configuration.status()
 
         # Attempt to just reload the NSC configuration
@@ -272,7 +272,7 @@ class API(object):
         return self
 
     def __exit__(self, *args):
-        self.apply_changes()
+        self.commit()
 
 
 def api(host, port=80, scheme='http'):

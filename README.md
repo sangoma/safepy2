@@ -85,11 +85,11 @@ Once we're all done, we still have to apply our changes to make them
 live:
 
 ~~~python
->>> api.apply_changes()
+>>> api.commit()
 ~~~
 
 Optionally, you can use (abuse) context managers to automatically call
-`apply_changes`:
+`commit`:
 
 ~~~python
 >>> api.sip.profile['example-profile'].stop()
