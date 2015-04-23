@@ -119,7 +119,7 @@ def make_get_method(ub, nodeid):
 
 def make_post_method(ub, nodeid):
     def post(self, data={}):
-        return ub.post('api', nodeid)
+        return ub.post('api', nodeid, data)
     return post
 
 
