@@ -1,5 +1,5 @@
-Package safepy.url
-------------------
-.. automodule:: safepy.url
+Package safe.url
+----------------
+.. automodule:: safe.url
    :members:
    :special-members:

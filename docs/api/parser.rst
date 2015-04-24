@@ -1,4 +1,4 @@
-Package safepy.parser
----------------------
-.. automodule:: safepy.parser
+Package safe.parser
+-------------------
+.. automodule:: safe.parser
    :members:

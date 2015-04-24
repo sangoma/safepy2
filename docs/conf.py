@@ -15,7 +15,7 @@ templates_path = ['_templates']
 source_suffix = '.rst'
 master_doc = 'index'
 
-project = u'safepy'
+project = u'safepy2'
 copyright = u'2015, Sangoma Technologies Corp.'
 
 version = '1'
@@ -38,7 +38,7 @@ else:
     html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # html_static_path = ['_static']
-htmlhelp_basename = 'safepydoc'
+htmlhelp_basename = 'safepy2doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -55,21 +55,21 @@ latex_elements = {
 }
 
 latex_documents = [
-  ('index', 'safepy.tex', u'safepy Documentation',
+  ('index', 'safepy2.tex', u'safepy2 Documentation',
    u'Sangoma Technologies Corp.', 'manual'),
 ]
 
 # -- Options for manual page output ---------------------------------------
 
 man_pages = [
-    ('index', 'safepy', u'safepy Documentation',
+    ('index', 'safepy2', u'safepy2 Documentation',
      [u'Sangoma Technologies Corp.'], 1)
 ]
 
 # -- Options for Texinfo output -------------------------------------------
 
 texinfo_documents = [
-  ('index', 'safepy', u'safepy Documentation',
-   u'Sangoma Technologies Corp.', 'safepy', 'One line description of project.',
-   'Miscellaneous'),
+  ('index', 'safepy2', u'safepy2 Documentation',
+   u'Sangoma Technologies Corp.', 'safepy2',
+   'One line description of project.', 'Miscellaneous'),
 ]

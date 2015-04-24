@@ -1,19 +1,19 @@
 SAFe Python Tools
 =================
 
-The safepy package provides a set of tools and utilities useful for
+The safepy2 package provides a set of tools and utilities useful for
 interacting with SAFe from python.
 
 Talking to Products
 -------------------
 
-The :mod:`safepy.api` library provides a quickly and easy way of
+The :mod:`safe.api` library provides a quickly and easy way of
 getting access to a remote product. It fetches the SAFe specification
 file and dynamically creates a set of classes to bridge the SAFe
 object model with a Python one. ::
 
-    >>> import safepy
-    >>> api = safepy.api('example-profile')
+    >>> import safe
+    >>> api = safe.api('example-profile')
 
 The resulting api object gives us a well typed window into the product
 of interest. For example, we can look at sip profiles.
@@ -48,7 +48,7 @@ Parsing the SAFe Specification
 ------------------------------
 
 To be able to this dynamic generation, the SAFe specification file
-first has to be parsed, done in :mod:`safepy.parser`. The parser pulls
+first has to be parsed, done in :mod:`safe.parser`. The parser pulls
 the specification through REST and builds an ast tree representing the
 specification.
 
@@ -61,7 +61,7 @@ This library is exposed so other potentially interesting applications
 of the specification file can be done without needing to write their
 own parser. ::
 
-    >>> ast = safepy.parse('example-profile')
+    >>> ast = safe.parse('example-profile')
     [ObjectNode(tag=firewall, cls=[], methods=[], objs=[ObjectNode(tag=service, ...
 
 API Reference

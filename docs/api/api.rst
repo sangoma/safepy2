@@ -1,4 +1,4 @@
-Package safepy.api
-------------------
-.. automodule:: safepy.api
+Package safe.api
+----------------
+.. automodule:: safe.api
    :members:

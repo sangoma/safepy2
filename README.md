@@ -1,4 +1,4 @@
-# safepy
+# safepy2
 
 Python library that auto-generates generates a wrapper around NSC's
 REST API. The NSC webui provides a specification file describing its
@@ -23,7 +23,7 @@ wrappings.
 
 ## Talking to Products
 
-The `safepy.api` library provides a quickly and easy way of getting
+The `safe.api` library provides a quickly and easy way of getting
 access to a remote product. It fetches the specification file from the
 device and uses it to dynamically generates a wrapper around the
 described documentation. Care it taken to try and attach documentation
@@ -31,8 +31,8 @@ to `__doc__` fields where it's provided, so the resulting wrapper
 should be fairly well documented internally.
 
 ~~~python
->>> import safepy
->>> api = safepy.api('example-profile')
+>>> import safe
+>>> api = safe.api('example-profile')
 ~~~
 
 The resulting `api` object gives us a window into the product of
