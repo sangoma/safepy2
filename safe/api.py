@@ -166,7 +166,7 @@ def compile_methods(ast, ub, collection=False):
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
 
-    namespace = {}
+    namespace = {'ident': ub.segments[-1]}
     for node in ast:
         if node.tag in OVERRIDES:
             method = OVERRIDES[node.tag](ub, node.tag)
