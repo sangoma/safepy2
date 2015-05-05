@@ -56,21 +56,11 @@ def make_docstring(description):
 
 # {{{ Make Functions
 def make_list(ub, nodeid):
-    def list(self, filter=None):
-        response = ub.get('api', nodeid)
+    def list(self, filter_expr=None):
+        if not filter_expr:
+            return ub.get('api', nodeid)
 
-        # if no filter was provided, bail out now returning everything
-        if filter is None:
-            return response
-
-        # otherwise only return entries who satisfy the filter
-        matches = []
-        for item in response:
-            elem = self[item].retrieve()
-            if all((k in elem and elem[k] == v)
-                   for k, v in filter.iteritems()):
-                matches.append(item)
-        return matches
+        return ub.post('api', nodeid, {'filter': filter_expr})
     return list
 
 
