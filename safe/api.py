@@ -250,9 +250,7 @@ class API(object):
         # Changes may still now require us to restart the nsc service
         # to apply
         if state['modified']:
-            self.nsc.service.stop()
             self.nsc.configuration.apply()
-            self.nsc.service.start()
             state = self.nsc.configuration.status()
 
         if state['modified']:
