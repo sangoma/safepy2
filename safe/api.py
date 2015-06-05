@@ -122,6 +122,9 @@ class APICollection(object):
     def delete(self, key):
         self.ub(key).post('api', 'delete')
 
+    def update(self, key, data):
+        self.ub(key).post('api', 'update', data)
+
     def __getitem__(self, key):
         return compile_child(self.node, self.ub(key))
 
