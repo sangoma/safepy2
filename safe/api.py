@@ -125,6 +125,9 @@ class APICollection(object):
     def update(self, key, data):
         self.ub(key).post('api', 'update', data)
 
+    def retrieve(self, key):
+        return self.ub(key).get('api', 'retrieve')
+
     def __getitem__(self, key):
         return compile_child(self.node, self.ub(key))
 
