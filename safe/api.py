@@ -111,33 +111,43 @@ def make_post_method(ub, nodeid):
     def post(self, data={}):
         return ub.post('api', nodeid, data)
     return post
+# }}}
 
 
-def make_getchild(node, ub):
+class APICollection(object):
+    def __init__(self, node, ub):
+        self.node = node
+        self.ub = ub
+
     def __getitem__(self, key):
-        return compile_child(node, ub(key))
-    return __getitem__
+        return compile_child(self.node, self.ub(key))
 
+    def __contains__(self, key):
+        return key in self.list()
 
-def make_repr(func):
+    def __iter__(self):
+        for key in self.list():
+            yield self[key]
+
+    def __len__(self):
+        return len(self.list())
+
     def __repr__(self):
-        'x.__repr__() <==> repr(x)'
-        return '{}({!r})'.format(self.__class__.__name__,
-                                 getattr(self, func)())
-    return __repr__
+        return '{}({!r})'.format(self.__class__.__name__, self.list())
 
 
-def make_getitem():
+class APIChild(object):
+    def __init__(self, ub):
+        self.ub = ub
+
     def __getitem__(self, key):
         return self.retrieve()[key]
-    return __getitem__
 
-
-def make_setitem():
     def __setitem__(self, key, value):
         self.update({key: value})
-    return __setitem__
-# }}}
+
+    def __repr__(self):
+        return '{}({!r})'.format(self.__class__.__name__, self.retrieve())
 
 
 OVERRIDES = {'list': make_list}
@@ -201,25 +211,14 @@ def compile_child(node, ub):
     namespace.update(compile_objects(node.objs, ub))
     namespace.update(compile_methods(node.methods, ub))
 
-    if 'retrieve' in namespace:
-        namespace['__repr__'] = make_repr('retrieve')
-        namespace['__getitem__'] = make_getitem()
-    if 'update' in namespace:
-        namespace['__setitem__'] = make_setitem()
-
-    return type(typename, (), namespace)()
+    return type(typename, (APIChild,), namespace)(ub)
 
 
 def compile_collection(node, ub):
     typename, namespace = object_template(node)
 
     namespace.update(compile_methods(node.methods, ub, True))
-    namespace['__getitem__'] = make_getchild(node, ub)
-
-    if 'list' in namespace:
-        namespace['__repr__'] = make_repr('list')
-
-    return type(typename, (), namespace)()
+    return type(typename, (APICollection,), namespace)(node, ub)
 
 
 def compile_object(node, ub):
