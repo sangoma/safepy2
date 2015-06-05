@@ -114,6 +114,31 @@ def make_post_method(ub, nodeid):
 # }}}
 
 
+class API(object):
+    def commit(self):
+        state = self.nsc.configuration.status()
+
+        # Attempt to just reload the NSC configuration
+        if state['modified'] and state['can_reload']:
+            self.nsc.configuration.reload()
+            state = self.nsc.configuration.status()
+
+        # Changes may still now require us to restart the nsc service
+        # to apply
+        if state['modified']:
+            self.nsc.configuration.apply()
+            state = self.nsc.configuration.status()
+
+        if state['modified']:
+            raise RuntimeError('Failed to apply pending changes')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.commit()
+
+
 class APICollection(object):
     def __init__(self, node, ub):
         self.node = node
@@ -136,7 +161,7 @@ class APICollection(object):
         return '{}({!r})'.format(self.__class__.__name__, self.list())
 
 
-class APIChild(object):
+class APIObject(object):
     def __init__(self, ub):
         self.ub = ub
 
@@ -211,7 +236,7 @@ def compile_child(node, ub):
     namespace.update(compile_objects(node.objs, ub))
     namespace.update(compile_methods(node.methods, ub))
 
-    return type(typename, (APIChild,), namespace)(ub)
+    return type(typename, (APIObject,), namespace)(ub)
 
 
 def compile_collection(node, ub):
@@ -235,31 +260,6 @@ def compile_object(node, ub):
 
 def compile_objects(ast, ub):
     return {n.tag: compile_object(n, ub) for n in ast}
-
-
-class API(object):
-    def commit(self):
-        state = self.nsc.configuration.status()
-
-        # Attempt to just reload the NSC configuration
-        if state['modified'] and state['can_reload']:
-            self.nsc.configuration.reload()
-            state = self.nsc.configuration.status()
-
-        # Changes may still now require us to restart the nsc service
-        # to apply
-        if state['modified']:
-            self.nsc.configuration.apply()
-            state = self.nsc.configuration.status()
-
-        if state['modified']:
-            raise RuntimeError('Failed to apply pending changes')
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.commit()
 
 
 def api(host, port=80, scheme='http'):
