@@ -55,40 +55,6 @@ def make_docstring(description):
 
 
 # {{{ Make Functions
-def make_list(ub, nodeid):
-    def list(self, filter_expr=None):
-        if not filter_expr:
-            return ub.get('api', nodeid)
-
-        return ub.post('api', nodeid, {'filter': filter_expr})
-    return list
-
-
-def make_create(ub):
-    def create(self, key, data={}):
-        ub(key).post('api', 'create', data)
-        return self[key]
-    return create
-
-
-def make_retrieve(ub):
-    def retrieve(self, key):
-        return ub(key).get('api', 'retrieve')
-    return retrieve
-
-
-def make_update(ub):
-    def update(self, key, data):
-        ub(key).post('api', 'update', data)
-    return update
-
-
-def make_delete(ub):
-    def delete(self, key):
-        ub(key).post('api', 'delete')
-    return delete
-
-
 def make_getter(attr):
     def getter(self):
         return self.retrieve()[attr]
@@ -144,6 +110,18 @@ class APICollection(object):
         self.node = node
         self.ub = ub
 
+    def list(self, filter_expr=None):
+        if not filter_expr:
+            return self.ub.get('api', 'list')
+        return self.ub.post('api', 'list', {'filter': filter_expr})
+
+    def create(self, key, data={}):
+        self.ub(key).post('api', 'create', data)
+        return self[key]
+
+    def delete(self, key):
+        self.ub(key).post('api', 'delete')
+
     def __getitem__(self, key):
         return compile_child(self.node, self.ub(key))
 
@@ -164,6 +142,12 @@ class APIObject(object):
     def __init__(self, ub):
         self.ub = ub
 
+    def retrieve(self):
+        return self.ub.get('api', 'retrieve')
+
+    def update(self, data):
+        self.ub.post('api', 'update', data)
+
     def __getitem__(self, key):
         return self.retrieve()[key]
 
@@ -174,12 +158,7 @@ class APIObject(object):
         return '{}({!r})'.format(self.__class__.__name__, self.retrieve())
 
 
-OVERRIDES = {'list': make_list}
-
-COLLECTION_METHODS = {'create': make_create,
-                      'retrieve': make_retrieve,
-                      'update': make_update,
-                      'delete': make_delete}
+OVERRIDES = {'list', 'create', 'retrieve', 'update', 'delete'}
 
 HTTP_REQUEST = {'GET': make_get_method,
                 'POST': make_post_method}
@@ -192,17 +171,11 @@ def compile_methods(ast, ub, collection=False):
 
     namespace = {'ident': ub.segments[-1]}
     for node in ast:
-        if node.tag in OVERRIDES:
-            method = OVERRIDES[node.tag](ub, node.tag)
-        elif collection and node.tag in COLLECTION_METHODS:
-            method = COLLECTION_METHODS[node.tag](ub)
-        else:
-            request = node['request']
-            method = HTTP_REQUEST[request](ub, node.tag)
+        if node.tag not in OVERRIDES:
+            method = HTTP_REQUEST[node['request']](ub, node.tag)
             method.__name__ = make_typename(node.tag)
-
-        method.__doc__ = make_docstring(node.get('description', None))
-        namespace[method.__name__] = method
+            method.__doc__ = make_docstring(node.get('description', None))
+            namespace[method.__name__] = method
 
     return namespace
 
