@@ -151,8 +151,7 @@ class APICollection(object):
         return key in self.list()
 
     def __iter__(self):
-        for key in self.list():
-            yield self[key]
+        return iter(self.list())
 
     def __len__(self):
         return len(self.list())
