@@ -250,7 +250,7 @@ def compile_object(node, ub):
 
 
 def compile_objects(ast, ub):
-    return {n.tag: compile_object(n, ub) for n in ast}
+    return {make_typename(n.tag): compile_object(n, ub) for n in ast}
 
 
 def api(host, port=80, scheme='http'):
