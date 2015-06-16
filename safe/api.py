@@ -164,6 +164,17 @@ class APIObject(object):
         return '{}({!r})'.format(self.__class__.__name__, self.retrieve())
 
 
+class APIModule(object):
+    def __init__(self, ub):
+        self.ub = ub
+
+    def __getitem__(self, key):
+        return self.retrieve()[key]
+
+    def __repr__(self):
+        return '{}()'.format(self.__class__.__name__)
+
+
 OVERRIDES = {'list', 'create', 'retrieve', 'update', 'delete'}
 
 HTTP_REQUEST = {'GET': make_get_method,
@@ -214,7 +225,9 @@ def compile_child(node, ub):
     namespace.update(compile_objects(node.objs, ub))
     namespace.update(compile_methods(node.methods, ub))
 
-    return type(typename, (APIObject,), namespace)(ub)
+    if bool('retrieve' in node.objs and 'update' in node.objs):
+        return type(typename, (APIObject,), namespace)(ub)
+    return type(typename, (APIModule,), namespace)(ub)
 
 
 def compile_collection(node, ub):
