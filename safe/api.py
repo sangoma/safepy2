@@ -108,28 +108,28 @@ class API(object):
 class APICollection(object):
     def __init__(self, node, ub):
         self.node = node
-        self.ub = ub
+        self._ub = ub
 
     def list(self, filter_expr=None):
         if not filter_expr:
-            return self.ub.get('api', 'list')
-        return self.ub.post('api', 'list', {'filter': filter_expr})
+            return self._ub.get('api', 'list')
+        return self._ub.post('api', 'list', {'filter': filter_expr})
 
     def create(self, key, data={}):
-        self.ub(key).post('api', 'create', data)
+        self._ub(key).post('api', 'create', data)
         return self[key]
 
     def delete(self, key):
-        self.ub(key).post('api', 'delete')
+        self._ub(key).post('api', 'delete')
 
     def update(self, key, data):
-        self.ub(key).post('api', 'update', data)
+        self._ub(key).post('api', 'update', data)
 
     def retrieve(self, key):
-        return self.ub(key).get('api', 'retrieve')
+        return self._ub(key).get('api', 'retrieve')
 
     def __getitem__(self, key):
-        return compile_child(self.node, self.ub(key))
+        return compile_child(self.node, self._ub(key))
 
     def __contains__(self, key):
         return key in self.list()
@@ -146,13 +146,13 @@ class APICollection(object):
 
 class APIObject(object):
     def __init__(self, ub):
-        self.ub = ub
+        self._ub = ub
 
     def retrieve(self):
-        return self.ub.get('api', 'retrieve')
+        return self._ub.get('api', 'retrieve')
 
     def update(self, data):
-        self.ub.post('api', 'update', data)
+        self._ub.post('api', 'update', data)
 
     def __getitem__(self, key):
         return self.retrieve()[key]
@@ -166,7 +166,7 @@ class APIObject(object):
 
 class APIModule(object):
     def __init__(self, ub):
-        self.ub = ub
+        self._ub = ub
 
     def __getitem__(self, key):
         return self.retrieve()[key]
