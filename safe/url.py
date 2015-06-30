@@ -62,7 +62,7 @@ class UrlBuilder(object):
         segments = self.segments + segments
         return UrlBuilder(self.base, self.session, segments)
 
-    def url(self, prefix, method=None):
+    def url(self, prefix, method=None, args=()):
         '''Render a specific url to string.
 
         :param prefix: The prefix, for example, 'doc' or 'api'.
@@ -71,16 +71,16 @@ class UrlBuilder(object):
         :type method: str
         '''
         prefix = (prefix, method) if method else (prefix,)
-        segments = prefix + self.segments
+        segments = prefix + self.segments + args
         return urlparse.urljoin(self.base, '/'.join(segments))
 
-    def get(self, prefix, method=None):
-        data = self.session.get(self.url(prefix, method))
+    def get(self, prefix, method=None, args=()):
+        data = self.session.get(self.url(prefix, method=method, args=args))
         return unpack_rest_response(data)
 
-    def post(self, prefix, method=None, data={}):
+    def post(self, prefix, method=None, data={}, args=()):
         headers = {'Content-Type': 'application/json'}
-        postdata = self.session.post(self.url(prefix, method),
+        postdata = self.session.post(self.url(prefix, method=method, args=args),
                                      data=json.dumps(data),
                                      headers=headers)
         return unpack_rest_response(postdata)

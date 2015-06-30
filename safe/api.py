@@ -67,15 +67,15 @@ def make_setter(attr):
     return setter
 
 
-def make_get_method(ub, nodeid):
-    def get(self):
-        return ub.get('api', nodeid)
+def make_get_method(ub, nodeid, *arg):
+    def get(self, *args):
+        return ub.get('api', nodeid, args=args)
     return get
 
 
 def make_post_method(ub, nodeid):
-    def post(self, data={}):
-        return ub.post('api', nodeid, data)
+    def post(self, data={}, *args):
+        return ub.post('api', nodeid, data=data, args=args)
     return post
 # }}}
 
