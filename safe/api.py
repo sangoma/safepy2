@@ -232,7 +232,7 @@ def compile_child(node, ub):
 def compile_collection(node, ub):
     typename, namespace = object_template(node)
 
-    #namespace.update(compile_methods(node.methods, ub, APICollection))
+    namespace.update(compile_methods(node.methods, ub, APICollection))
     return type(typename, (APICollection,), namespace)(node, ub)
 
 
