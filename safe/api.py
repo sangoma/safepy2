@@ -175,24 +175,24 @@ class APIModule(object):
         return '{}()'.format(self.__class__.__name__)
 
 
-OVERRIDES = {'list', 'create', 'retrieve', 'update', 'delete'}
-
-HTTP_REQUEST = {'GET': make_get_method,
-                'POST': make_post_method}
-
-
-def compile_methods(ast, ub, collection=False):
+def compile_methods(ast, ub, cls):
     '''Compile all the methods specified in the json 'methods' section.
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
 
     namespace = {'ident': ub.segments[-1]}
     for node in ast:
-        if node.tag not in OVERRIDES:
-            method = HTTP_REQUEST[node['request']](ub, node.tag)
-            method.__name__ = make_typename(node.tag)
-            method.__doc__ = make_docstring(node.get('description', None))
-            namespace[method.__name__] = method
+        if node.tag in cls.__dict__:
+            continue
+
+        if node['request'] == 'GET':
+            method = make_get_method(ub, node.tag)
+        elif node['request'] == 'POST':
+            method = make_post_method(ub, node.tag)
+
+        method.__name__ = make_typename(node.tag)
+        method.__doc__ = make_docstring(node.get('description', None))
+        namespace[method.__name__] = method
 
     return namespace
 
@@ -220,20 +220,19 @@ def object_template(node):
 
 def compile_child(node, ub):
     typename, namespace = object_template(node)
+    cls = APIModule if node.singleton else APIObject
 
     namespace.update(compile_properties(node.cls))
     namespace.update(compile_objects(node.objs, ub))
-    namespace.update(compile_methods(node.methods, ub))
+    namespace.update(compile_methods(node.methods, ub, cls))
 
-    if bool('retrieve' in node.objs and 'update' in node.objs):
-        return type(typename, (APIObject,), namespace)(ub)
-    return type(typename, (APIModule,), namespace)(ub)
+    return type(typename, (cls,), namespace)(ub)
 
 
 def compile_collection(node, ub):
     typename, namespace = object_template(node)
 
-    namespace.update(compile_methods(node.methods, ub, True))
+    #namespace.update(compile_methods(node.methods, ub, APICollection))
     return type(typename, (APICollection,), namespace)(node, ub)
 
 
