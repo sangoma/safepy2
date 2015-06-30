@@ -27,14 +27,21 @@ def unpack_rest_response(r):
     availability'''
 
     r.raise_for_status()
-    data = r.json()
+    content_type = r.headers['content-type']
 
-    if 'error' in data:
-        raise RuntimeError(data['error'])
-    try:
-        return data['data']
-    except KeyError:
-        return data['status']
+    if content_type == 'application/json':
+        data = r.json()
+
+        if 'error' in data:
+            raise RuntimeError(data['error'])
+        try:
+            return data['data']
+        except KeyError:
+            return data['status']
+    elif content_type == 'application/x-gzip':
+        return r.content
+    else:
+        raise RuntimeError("Unsupported content type: {!r}".format(content_type))
 
 
 class UrlBuilder(object):
