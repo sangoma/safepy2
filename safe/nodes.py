@@ -34,6 +34,11 @@ class ObjectNode(Node):
             return True
         return self.get('singleton', False)
 
+    @property
+    def isobject(self):
+        method_names = set(node.tag for node in self.methods)
+        return method_names.issuperset(('update', 'retrieve'))
+
 
 class MethodNode(Node):
     pass

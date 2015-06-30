@@ -220,7 +220,7 @@ def object_template(node):
 
 def compile_child(node, ub):
     typename, namespace = object_template(node)
-    cls = APIModule if node.singleton else APIObject
+    cls = APIObject if node.isobject else APIModule
 
     namespace.update(compile_properties(node.cls))
     namespace.update(compile_objects(node.objs, ub))
