@@ -1,4 +1,4 @@
-# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+#vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
 # Copyright (C) 2014  Sangoma Technologies Corp.
 # All Rights Reserved.
@@ -74,8 +74,8 @@ def make_get_method(ub, nodeid, *arg):
 
 
 def make_post_method(ub, nodeid):
-    def post(self, data={}, *args):
-        return ub.post('api', nodeid, data=data, args=args)
+    def post(self, *args):
+        return ub.post('api', nodeid, args=args)
     return post
 # }}}
 

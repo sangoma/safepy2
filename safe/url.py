@@ -78,17 +78,34 @@ class UrlBuilder(object):
         :type method: str
         '''
         prefix = (prefix, method) if method else (prefix,)
-        segments = prefix + self.segments + args
+        segments = prefix + self.segments + tuple(args)
         return urlparse.urljoin(self.base, '/'.join(segments))
 
     def get(self, prefix, method=None, args=()):
         data = self.session.get(self.url(prefix, method=method, args=args))
         return unpack_rest_response(data)
 
-    def post(self, prefix, method=None, data={}, args=()):
-        headers = {'Content-Type': 'application/json'}
-        postdata = self.session.post(self.url(prefix, method=method, args=args),
-                                     data=json.dumps(data),
+    def post(self, prefix, method=None, args=()):
+        headers = postdata = None
+        additional_args = []
+
+        for arg in args:
+            if isinstance(arg, basestring):
+                additional_args.append(arg)
+            elif isinstance(arg, dict):
+                if postdata is not None:
+                    raise ValueError('Multiple post data arguments')
+                postdata = arg
+            else:
+                raise TypeError('Invalid argument {!r}'.format(arg))
+
+        if postdata:
+            postdata = json.dumps(postdata)
+            headers = {'Content-Type': 'application/json'}
+
+        safe_url = self.url(prefix, method=method, args=additional_args)
+        postdata = self.session.post(safe_url,
+                                     data=postdata,
                                      headers=headers)
         return unpack_rest_response(postdata)
 
