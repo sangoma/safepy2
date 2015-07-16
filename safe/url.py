@@ -69,7 +69,7 @@ class UrlBuilder(object):
         segments = self.segments + segments
         return UrlBuilder(self.base, self.session, segments)
 
-    def url(self, prefix, method=None, args=()):
+    def url(self, prefix, method=None, keys=()):
         '''Render a specific url to string.
 
         :param prefix: The prefix, for example, 'doc' or 'api'.
@@ -78,32 +78,21 @@ class UrlBuilder(object):
         :type method: str
         '''
         prefix = (prefix, method) if method else (prefix,)
-        segments = prefix + self.segments + tuple(args)
+        segments = prefix + self.segments + tuple(keys)
         return urlparse.urljoin(self.base, '/'.join(segments))
 
-    def get(self, prefix, method=None, args=()):
-        data = self.session.get(self.url(prefix, method=method, args=args))
+    def get(self, prefix, method=None, keys=()):
+        data = self.session.get(self.url(prefix, method=method, keys=keys))
         return unpack_rest_response(data)
 
-    def post(self, prefix, method=None, args=()):
-        headers = postdata = None
-        additional_args = []
-
-        for arg in args:
-            if isinstance(arg, basestring):
-                additional_args.append(arg)
-            elif isinstance(arg, dict):
-                if postdata is not None:
-                    raise ValueError('Multiple post data arguments')
-                postdata = arg
-            else:
-                raise TypeError('Invalid argument {!r}'.format(arg))
-
-        if postdata:
-            postdata = json.dumps(postdata)
+    def post(self, prefix, method=None, keys=(), data=None):
+        if data:
+            postdata = json.dumps(data)
             headers = {'Content-Type': 'application/json'}
+        else:
+            headers = postdata = None
 
-        safe_url = self.url(prefix, method=method, args=additional_args)
+        safe_url = self.url(prefix, method=method, keys=keys)
         postdata = self.session.post(safe_url,
                                      data=postdata,
                                      headers=headers)

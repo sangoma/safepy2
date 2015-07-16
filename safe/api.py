@@ -75,7 +75,9 @@ def make_get_method(ub, nodeid, *arg):
 
 def make_post_method(ub, nodeid):
     def post(self, *args):
-        return ub.post('api', nodeid, args=args)
+        if args[-1] and isinstance(args[-1], dict):
+            return ub.post('api', nodeid, keys=args[:-1], data=args[-1])
+        return ub.post('api', nodeid, keys=args)
     return post
 # }}}
 
@@ -116,14 +118,14 @@ class APICollection(object):
         return self._ub.post('api', 'list', {'filter': filter_expr})
 
     def create(self, key, data={}):
-        self._ub(key).post('api', 'create', data)
+        self._ub(key).post('api', 'create', data=data)
         return self[key]
 
     def delete(self, key):
         self._ub(key).post('api', 'delete')
 
     def update(self, key, data):
-        self._ub(key).post('api', 'update', data)
+        self._ub(key).post('api', 'update', data=data)
 
     def retrieve(self, key):
         return self._ub(key).get('api', 'retrieve')
