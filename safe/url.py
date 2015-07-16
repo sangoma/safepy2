@@ -21,19 +21,56 @@ import requests
 import urlparse
 
 
+class APIError(requests.HTTPError):
+    pass
+
+
+def raise_api_error(r):
+    """Raises stored :class:`APIError`, if one occurred."""
+
+    data = r.json()
+    error = data.get('error', None)
+
+    api_error_message = None
+    if error == 'Conflict':
+        api_error_message = "The key '{}' is in conficts with the "\
+                            "system".format(data['name'])
+    elif isinstance(error, dict):
+        api_error_message = '\n'.join('Error on {}: {}'.format(f, m)
+                                      for f, m in error.iteritems())
+
+    if api_error_message:
+        raise APIError(api_error_message, response=r)
+
+
+def raise_for_status(r):
+    """Raises stored :class:`requests.HTTPError`, if one occurred."""
+
+    http_error_msg = None
+    if 400 <= r.status_code < 500:
+        if r.headers['content-type'] == 'application/json':
+            raise_api_error(r)
+        http_error_msg = '{} Client Error: {} for url:'\
+                         '{}'.format(r.status_code, r.reason, r.url)
+    elif 500 <= r.status_code < 600:
+        http_error_msg = '{} Server Error: {} for url: '\
+                         '{}'.format(r.status_code, r.reason, r.url)
+
+    if http_error_msg:
+        raise requests.HTTPError(http_error_msg, response=r)
+
+
 def unpack_rest_response(r):
     '''Interpret the response from a rest call. If we got an error,
     raise it. If not return either data or status, depending on
     availability'''
 
-    r.raise_for_status()
+    raise_for_status(r)
     content_type = r.headers['content-type']
 
     if content_type == 'application/json':
         data = r.json()
 
-        if 'error' in data:
-            raise RuntimeError(data['error'])
         try:
             return data['data']
         except KeyError:
@@ -123,7 +160,7 @@ def get_docs(host, port=80, scheme='http'):
     ub = url_builder(host, port, scheme)
 
     r = requests.get(ub.url('doc'))
-    r.raise_for_status()
+    raise_for_status(r)
     return r.json()
 
 
