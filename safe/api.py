@@ -69,13 +69,13 @@ def make_setter(attr):
 
 def make_get_method(ub, nodeid, *arg):
     def get(self, *args):
-        return ub.get('api', nodeid, args=args)
+        return ub.get('api', nodeid, keys=args)
     return get
 
 
 def make_post_method(ub, nodeid):
     def post(self, *args):
-        if args[-1] and isinstance(args[-1], dict):
+        if args and isinstance(args[-1], dict):
             return ub.post('api', nodeid, keys=args[:-1], data=args[-1])
         return ub.post('api', nodeid, keys=args)
     return post
