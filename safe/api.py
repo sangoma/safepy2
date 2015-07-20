@@ -154,7 +154,7 @@ class APIObject(object):
         return self._ub.get('api', 'retrieve')
 
     def update(self, data):
-        self._ub.post('api', 'update', data)
+        self._ub.post('api', 'update', data=data)
 
     def __getitem__(self, key):
         return self.retrieve()[key]
