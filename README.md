@@ -102,15 +102,6 @@ live:
 >>> api.commit()
 ~~~
 
-Optionally, you can use (abuse) context managers to automatically call
-`commit`:
-
-~~~python
->>> api.sip.profile['example-profile'].stop()
->>> with api:
-...    api.sip.profile.delete('example-profile')
-~~~
-
 ## Roadmap
 
 TODO

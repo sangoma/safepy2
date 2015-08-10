@@ -100,12 +100,6 @@ class API(object):
         if state['modified']:
             raise RuntimeError('Failed to apply pending changes')
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        self.commit()
-
 
 class APICollection(object):
     def __init__(self, node, ub):
