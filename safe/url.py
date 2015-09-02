@@ -89,8 +89,9 @@ class UrlBuilder(object):
     a path and allows itself to be cloned to append more information.
     '''
 
-    def __init__(self, base, session=None, segments=None):
+    def __init__(self, base, session=None, segments=None, token=None):
         self.base = base
+        self.token = token
         self.session = session or requests.Session()
         self.segments = segments or ()
 
@@ -102,7 +103,7 @@ class UrlBuilder(object):
         '''
 
         segments = self.segments + segments
-        return UrlBuilder(self.base, self.session, segments)
+        return UrlBuilder(self.base, self.session, segments, token=self.token)
 
     def url(self, prefix, method=None, keys=()):
         '''Render a specific url to string.
@@ -117,7 +118,12 @@ class UrlBuilder(object):
         return urlparse.urljoin(self.base, '/'.join(segments))
 
     def get(self, prefix, method=None, keys=()):
-        data = self.session.get(self.url(prefix, method=method, keys=keys))
+        headers = {}
+        if self.token:
+            headers['X-API-KEY'] = self.token
+
+        data = self.session.get(self.url(prefix, method=method, keys=keys),
+                                headers=headers)
         return unpack_rest_response(data)
 
     def post(self, prefix, method=None, keys=(), data=None):
@@ -125,7 +131,11 @@ class UrlBuilder(object):
             postdata = json.dumps(data)
             headers = {'Content-Type': 'application/json'}
         else:
-            headers = postdata = None
+            postdata = None
+            headers = {}
+
+        if self.token:
+            headers['X-API-KEY'] = self.token
 
         safe_url = self.url(prefix, method=method, keys=keys)
         postdata = self.session.post(safe_url,
@@ -134,7 +144,7 @@ class UrlBuilder(object):
         return unpack_rest_response(postdata)
 
 
-def url_builder(host, port=80, scheme='http'):
+def url_builder(host, port=80, scheme='http', token=None):
     '''Construct a :class:`sangoma.safepy.url.UrlBuilder` to help build
     urls. Calculates a correct base for the url from the host, port and
     scheme.
@@ -151,11 +161,11 @@ def url_builder(host, port=80, scheme='http'):
     base = '{scheme}://{host}:{port}/SAFe/sng_rest/'.format(host=host,
                                                             port=port,
                                                             scheme=scheme)
-    return UrlBuilder(base)
+    return UrlBuilder(base, token=token)
 
 
-def dump_docs(filepath, host, port=80, scheme='http'):
-    ub = url_builder(host, port, scheme)
+def dump_docs(filepath, host, port=80, scheme='http', token=None):
+    ub = url_builder(host, port, scheme, token=token)
     with open(filepath, 'w') as fp:
         json.dump(ub.get('doc'), fp,
                   sort_keys=True,
