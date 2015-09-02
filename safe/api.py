@@ -266,8 +266,8 @@ def api(host, port=80, scheme='http'):
     :returns: the dynamically generated code.
     '''
 
-    ub = url_builder(host, port, scheme)
-    ast = parse(host, port, scheme)
+    ub = url_builder(host, port, scheme, token=token)
+    ast = parse(ub)
 
     typename = make_typename(host.partition('.')[0].capitalize())
     namespace = compile_objects(ast, ub)

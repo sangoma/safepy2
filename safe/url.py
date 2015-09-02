@@ -154,12 +154,10 @@ def url_builder(host, port=80, scheme='http'):
     return UrlBuilder(base)
 
 
-def get_docs(host, port=80, scheme='http'):
+def dump_docs(filepath, host, port=80, scheme='http'):
     ub = url_builder(host, port, scheme)
-    return ub.get('doc')
-
-
-def dump_docs(filepath, *args, **kwargs):
-    docs = get_docs(*args, **kwargs)
     with open(filepath, 'w') as fp:
-        json.dump(docs, fp, sort_keys=True, indent=4, separators=(',', ': '))
+        json.dump(ub.get('doc'), fp,
+                  sort_keys=True,
+                  indent=4,
+                  separators=(',', ': '))

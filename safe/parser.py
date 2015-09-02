@@ -10,7 +10,6 @@ represeting its structure.
 '''
 
 
-from .url import get_docs
 from .nodes import *
 
 
@@ -30,7 +29,7 @@ def _parse_object(tag, spec, path=(), cls=ObjectNode):
                methods=parse_node('methods', MethodNode))
 
 
-def parse(host, port=80, scheme='http'):
+def parse_from_url(host, port=80, scheme='http', token=None):
     '''Parse the SAFe documentation specification.
 
     :param name: The hostname of the device to connect to.
@@ -41,6 +40,8 @@ def parse(host, port=80, scheme='http'):
     :type scheme: str
     :returns: The abstract syntax tree represeting the specification.
     '''
+    ub = url_builder(host, port, scheme, token=token)
 
-    doc = get_docs(host, port, scheme)
-    return [_parse_object(*d) for d in doc.iteritems()]
+
+def parse(url_builder):
+    return [_parse_object(*d) for d in url_builder.get('doc').iteritems()]
