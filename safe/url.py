@@ -72,12 +72,7 @@ def unpack_rest_response(r):
     content_type = r.headers['content-type']
 
     if content_type == 'application/json':
-        data = r.json()
-
-        try:
-            return data['data']
-        except KeyError:
-            return data['status']
+        return r.json()
     elif content_type == 'application/x-gzip':
         return r.content
     else:
@@ -161,10 +156,7 @@ def url_builder(host, port=80, scheme='http'):
 
 def get_docs(host, port=80, scheme='http'):
     ub = url_builder(host, port, scheme)
-
-    r = requests.get(ub.url('doc'))
-    raise_for_status(r)
-    return r.json()
+    return ub.get('doc')
 
 
 def dump_docs(filepath, *args, **kwargs):

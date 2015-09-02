@@ -69,15 +69,17 @@ def make_setter(attr):
 
 def make_get_method(ub, nodeid, *arg):
     def get(self, *args):
-        return ub.get('api', nodeid, keys=args)
+        return ub.get('api', nodeid, keys=args).get('data')
     return get
 
 
 def make_post_method(ub, nodeid):
     def post(self, *args):
         if args and isinstance(args[-1], dict):
-            return ub.post('api', nodeid, keys=args[:-1], data=args[-1])
-        return ub.post('api', nodeid, keys=args)
+            return ub.post('api', nodeid,
+                           keys=args[:-1],
+                           data=args[-1]).get('data')
+        return ub.post('api', nodeid, keys=args).get('data')
     return post
 # }}}
 
@@ -108,8 +110,10 @@ class APICollection(object):
 
     def list(self, filter_expr=None):
         if not filter_expr:
-            return self._ub.get('api', 'list')
-        return self._ub.post('api', 'list', {'filter': filter_expr})
+            return self._ub.get('api', 'list').get('data')
+
+        return self._ub.post('api', 'list',
+                             data={'filter': filter_expr}).get('data')
 
     def create(self, key, data={}):
         self._ub(key).post('api', 'create', data=data)
@@ -122,7 +126,7 @@ class APICollection(object):
         self._ub(key).post('api', 'update', data=data)
 
     def retrieve(self, key):
-        return self._ub(key).get('api', 'retrieve')
+        return self._ub(key).get('api', 'retrieve').get('data')
 
     def __getitem__(self, key):
         return compile_child(self.node, self._ub(key))
@@ -145,10 +149,10 @@ class APIObject(object):
         self._ub = ub
 
     def retrieve(self):
-        return self._ub.get('api', 'retrieve')
+        return self._ub.get('api', 'retrieve').get('data')
 
     def update(self, data):
-        self._ub.post('api', 'update', data=data)
+        self._ub.post('api', 'update', data=data).get('data')
 
     def __getitem__(self, key):
         return self.retrieve()[key]
