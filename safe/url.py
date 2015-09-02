@@ -89,11 +89,11 @@ class UrlBuilder(object):
     a path and allows itself to be cloned to append more information.
     '''
 
-    def __init__(self, base, session=None, segments=None, token=None):
+    def __init__(self, base, session, segments=None):
         self.base = base
-        self.token = token
-        self.session = session or requests.Session()
+        self.session = session
         self.segments = segments or ()
+
 
     def __call__(self, *segments):
         '''Create a new copy of the url builder with more segments
@@ -103,7 +103,7 @@ class UrlBuilder(object):
         '''
 
         segments = self.segments + segments
-        return UrlBuilder(self.base, self.session, segments, token=self.token)
+        return UrlBuilder(self.base, self.session, segments)
 
     def url(self, prefix, method=None, keys=()):
         '''Render a specific url to string.
@@ -118,30 +118,14 @@ class UrlBuilder(object):
         return urlparse.urljoin(self.base, '/'.join(segments))
 
     def get(self, prefix, method=None, keys=()):
-        headers = {}
-        if self.token:
-            headers['X-API-KEY'] = self.token
-
-        data = self.session.get(self.url(prefix, method=method, keys=keys),
-                                headers=headers)
+        data = self.session.get(self.url(prefix, method=method, keys=keys))
         return unpack_rest_response(data)
 
     def post(self, prefix, method=None, keys=(), data=None):
-        if data:
-            postdata = json.dumps(data)
-            headers = {'Content-Type': 'application/json'}
-        else:
-            postdata = None
-            headers = {}
-
-        if self.token:
-            headers['X-API-KEY'] = self.token
-
+        postdata = json.dumps(data) if data else None
         safe_url = self.url(prefix, method=method, keys=keys)
-        postdata = self.session.post(safe_url,
-                                     data=postdata,
-                                     headers=headers)
-        return unpack_rest_response(postdata)
+        data = self.session.post(safe_url, data=postdata)
+        return unpack_rest_response(data)
 
 
 def url_builder(host, port=80, scheme='http', token=None):
@@ -161,7 +145,13 @@ def url_builder(host, port=80, scheme='http', token=None):
     base = '{scheme}://{host}:{port}/SAFe/sng_rest/'.format(host=host,
                                                             port=port,
                                                             scheme=scheme)
-    return UrlBuilder(base, token=token)
+
+    session = requests.Session()
+    session.headers['Content-Type'] = 'application/json'
+    if token:
+        session.headers['X-API-KEY'] = token
+
+    return UrlBuilder(base, session)
 
 
 def dump_docs(filepath, host, port=80, scheme='http', token=None):
