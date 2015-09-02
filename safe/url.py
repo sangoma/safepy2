@@ -29,9 +29,12 @@ def raise_api_error(r):
     """Raises stored :class:`APIError`, if one occurred."""
 
     data = r.json()
-    error = data.get('error', None)
-
     api_error_message = None
+
+    if isinstance(data, basestring):
+        raise APIError(data, response=r)
+
+    error = data.get('error', None)
     if error == 'Conflict':
         api_error_message = "The key '{}' is in conficts with the "\
                             "system".format(data['name'])
