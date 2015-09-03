@@ -73,6 +73,12 @@ def make_get_method(ub, nodeid, *arg):
     return get
 
 
+def make_upload_method(ub, nodeid):
+    def get(self, filename, payload=None):
+        return ub.upload('api', filename, payload=None).get('data')
+    return get
+
+
 def make_post_method(ub, nodeid):
     def post(self, *args):
         if args and isinstance(args[-1], dict):
@@ -185,7 +191,9 @@ def compile_methods(ast, ub, cls):
         if node.tag in cls.__dict__:
             continue
 
-        if node['request'] == 'GET':
+        if node.tag == 'upload':
+            method = make_upload_method(ub, node.tag)
+        elif node['request'] == 'GET':
             method = make_get_method(ub, node.tag)
         elif node['request'] == 'POST':
             method = make_post_method(ub, node.tag)

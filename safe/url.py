@@ -117,6 +117,15 @@ class UrlBuilder(object):
         segments = prefix + self.segments + tuple(keys)
         return urlparse.urljoin(self.base, '/'.join(segments))
 
+    def upload(self, prefix, filename, payload=None):
+        if not payload:
+            with open(filename) as archive:
+                payload = archive.read()
+
+        data = self.session.post(self.url(prefix, method='upload'),
+                                 files={'archive': (filename, payload)})
+        return unpack_rest_response(data)
+
     def get(self, prefix, method=None, keys=()):
         data = self.session.get(self.url(prefix, method=method, keys=keys))
         return unpack_rest_response(data)
@@ -124,7 +133,8 @@ class UrlBuilder(object):
     def post(self, prefix, method=None, keys=(), data=None):
         postdata = json.dumps(data) if data else None
         safe_url = self.url(prefix, method=method, keys=keys)
-        data = self.session.post(safe_url, data=postdata)
+        data = self.session.post(safe_url, data=postdata,
+                                 headers={'Content-Type', 'application/json'})
         return unpack_rest_response(data)
 
 
@@ -147,7 +157,6 @@ def url_builder(host, port=80, scheme='http', token=None):
                                                             scheme=scheme)
 
     session = requests.Session()
-    session.headers['Content-Type'] = 'application/json'
     if token:
         session.headers['X-API-KEY'] = token
 
