@@ -134,7 +134,7 @@ class UrlBuilder(object):
         postdata = json.dumps(data) if data else None
         safe_url = self.url(prefix, method=method, keys=keys)
         data = self.session.post(safe_url, data=postdata,
-                                 headers={'Content-Type', 'application/json'})
+                                 headers={'Content-Type': 'application/json'})
         return unpack_rest_response(data)
 
 
