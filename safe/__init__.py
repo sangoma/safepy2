@@ -5,5 +5,5 @@
 # Author(s)
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
-from .parser import *
 from .api import api
+from .parser import parse_from_url

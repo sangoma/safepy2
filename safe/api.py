@@ -69,24 +69,36 @@ def make_setter(attr):
 
 def make_get_method(ub, nodeid, *arg):
     def get(self, *args):
-        return ub.get('api', nodeid, keys=args).get('data')
-    return get
-
-
-def make_upload_method(ub, nodeid):
-    def get(self, filename, payload=None):
-        return ub.upload('api', filename, payload=None).get('data')
+        r = ub.get('api', nodeid, keys=args)
+        assert r.mimetype == 'application/json'
+        return r.data
     return get
 
 
 def make_post_method(ub, nodeid):
     def post(self, *args):
         if args and isinstance(args[-1], dict):
-            return ub.post('api', nodeid,
-                           keys=args[:-1],
-                           data=args[-1]).get('data')
-        return ub.post('api', nodeid, keys=args).get('data')
+            r = ub.post('api', nodeid,
+                        keys=args[:-1],
+                        data=args[-1])
+        else:
+            r = ub.post('api', nodeid, keys=args)
+
+        assert r.mimetype == 'application/json'
+        return r.data
     return post
+
+
+def make_upload_method(ub, nodeid):
+    def get(self, filename, payload=None):
+        return ub.upload('api', filename, payload=None).data
+    return get
+
+
+def make_download_method(ub, nodeid, *arg):
+    def get(self, *args):
+        return ub.get('api', nodeid, keys=args).content
+    return get
 # }}}
 
 
@@ -116,10 +128,10 @@ class APICollection(object):
 
     def list(self, filter_expr=None):
         if not filter_expr:
-            return self._ub.get('api', 'list').get('data')
+            return self._ub.get('api', 'list').data
 
         return self._ub.post('api', 'list',
-                             data={'filter': filter_expr}).get('data')
+                             data={'filter': filter_expr}).data
 
     def create(self, key, data={}):
         self._ub(key).post('api', 'create', data=data)
@@ -132,7 +144,7 @@ class APICollection(object):
         self._ub(key).post('api', 'update', data=data)
 
     def retrieve(self, key):
-        return self._ub(key).get('api', 'retrieve').get('data')
+        return self._ub(key).get('api', 'retrieve').data
 
     def __getitem__(self, key):
         return compile_child(self.node, self._ub(key))
@@ -155,10 +167,10 @@ class APIObject(object):
         self._ub = ub
 
     def retrieve(self):
-        return self._ub.get('api', 'retrieve').get('data')
+        return self._ub.get('api', 'retrieve').data
 
     def update(self, data):
-        self._ub.post('api', 'update', data=data).get('data')
+        self._ub.post('api', 'update', data=data).data
 
     def __getitem__(self, key):
         return self.retrieve()[key]
@@ -193,6 +205,8 @@ def compile_methods(ast, ub, cls):
 
         if node.tag == 'upload':
             method = make_upload_method(ub, node.tag)
+        elif node.tag == 'download':
+            method = make_download_method(ub, node.tag)
         elif node['request'] == 'GET':
             method = make_get_method(ub, node.tag)
         elif node['request'] == 'POST':

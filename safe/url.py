@@ -25,6 +25,33 @@ class APIError(requests.HTTPError):
     pass
 
 
+class APIResponse(object):
+    def __init__(self, response):
+        self.mimetype = response.headers['content-type']
+
+        if self.mimetype == 'application/json':
+            self.content = response.json()
+        elif self.mimetype == 'application/x-gzip':
+            self.content = response.content
+        else:
+            raise APIError("Unsupported content type: "
+                           "{!r}".format(self.mimetype))
+
+    @property
+    def data(self):
+        if self.mimetype == 'application/json':
+            return self.content.get('data')
+
+    @property
+    def status(self):
+        if self.mimetype == 'application/json':
+            return bool(self.content.get('status'))
+        return bool(self.content)
+
+    def __nonzero__(self):
+        return self.status
+
+
 def raise_api_error(r):
     """Raises stored :class:`APIError`, if one occurred."""
 
@@ -69,14 +96,7 @@ def unpack_rest_response(r):
     availability'''
 
     raise_for_status(r)
-    content_type = r.headers['content-type']
-
-    if content_type == 'application/json':
-        return r.json()
-    elif content_type == 'application/x-gzip':
-        return r.content
-    else:
-        raise RuntimeError("Unsupported content type: {!r}".format(content_type))
+    return APIResponse(r)
 
 
 class UrlBuilder(object):
@@ -166,7 +186,8 @@ def url_builder(host, port=80, scheme='http', token=None):
 def dump_docs(filepath, host, port=80, scheme='http', token=None):
     ub = url_builder(host, port, scheme, token=token)
     with open(filepath, 'w') as fp:
-        json.dump(ub.get('doc'), fp,
+        json_spec = ub.get('doc').content
+        json.dump(json_spec, fp,
                   sort_keys=True,
                   indent=4,
                   separators=(',', ': '))

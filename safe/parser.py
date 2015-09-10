@@ -31,7 +31,8 @@ def _parse_object(tag, spec, path=(), cls=ObjectNode):
 
 
 def parse(url_builder):
-    return [_parse_object(*d) for d in url_builder.get('doc').iteritems()]
+    json_spec = url_builder.get('doc').content
+    return [_parse_object(*d) for d in json_spec.iteritems()]
 
 
 def parse_from_url(host, port=80, scheme='http', token=None):
