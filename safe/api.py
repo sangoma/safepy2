@@ -291,8 +291,6 @@ def api(host, port=80, scheme='http', token=None):
     ub = url_builder(host, port, scheme, token=token)
     ast = parse(ub)
 
-    typename = make_typename(host.partition('.')[0].capitalize())
     namespace = compile_objects(ast, ub)
-
-    product_cls = type(typename, (API,), namespace)
+    product_cls = type('API', (API,), namespace)
     return product_cls()
