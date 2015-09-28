@@ -65,14 +65,21 @@ def raise_api_error(r):
     if error == 'Conflict':
         api_error_message = "The key '{}' is in conficts with the "\
                             "system".format(data['name'])
-    elif isinstance(error, dict):
-        api_error_message = '\n'.join('Error on {}: {}'.format(f, m)
-                                      for f, m in error.iteritems())
-    elif isinstance(error, list):
-        api_error_message = 'Error on {}: {}'.format(data['name'],
-                                                     '\n'.join(error))
+        raise APIError(api_error_message, response=r)
 
-    if api_error_message:
+    # The error field can be, infuriatingly, one of a few possible
+    # types: a straight error message (liw above with Conflict),
+    # a dictionary ({'message': ...}), or a list of seperate lines.
+    try:
+        message = error.get('message')
+    except AttributeError:
+        message = error
+
+    if isinstance(message, list):
+        message = '\n'.join(message)
+
+    if message:
+        api_error_message = 'Error on {}: {}'.format(data['name'], message)
         raise APIError(api_error_message, response=r)
 
 
