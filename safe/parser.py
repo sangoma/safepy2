@@ -30,9 +30,8 @@ def _parse_object(tag, spec, path=(), cls=ObjectNode):
                methods=parse_node('methods', MethodNode))
 
 
-def parse(url_builder):
-    json_spec = url_builder.get('doc').content
-    return [_parse_object(*d) for d in json_spec.iteritems()]
+def parse(spec):
+    return [_parse_object(*d) for d in spec.iteritems()]
 
 
 def parse_from_url(host, port=80, scheme='http', token=None):
@@ -47,4 +46,4 @@ def parse_from_url(host, port=80, scheme='http', token=None):
     :returns: The abstract syntax tree represeting the specification.
     '''
     ub = url_builder(host, port, scheme, token=token)
-    return parse(ub)
+    return parse(ub.get('doc').content)

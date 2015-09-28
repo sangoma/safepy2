@@ -6,6 +6,7 @@
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
 import re
+import json
 import keyword
 from .url import url_builder
 from .parser import parse
@@ -274,7 +275,7 @@ def compile_objects(ast, ub):
     return {make_typename(n.tag): compile_object(n, ub) for n in ast}
 
 
-def api(host, port=80, scheme='http', token=None):
+def api(host, port=80, scheme='http', token=None, specfile=None):
     '''Connects to a remote device, download the json specification
     describing the supported rest calls and dynamically compile a new
     object to wrap the rest.
@@ -289,8 +290,13 @@ def api(host, port=80, scheme='http', token=None):
     '''
 
     ub = url_builder(host, port, scheme, token=token)
-    ast = parse(ub)
+    if not specfile:
+        spec = ub.get('doc').content
+    else:
+        with open(specfile) as fp:
+            spec = json.load(fp)
 
+    ast = parse(spec)
     namespace = compile_objects(ast, ub)
     product_cls = type('API', (API,), namespace)
     return product_cls()
