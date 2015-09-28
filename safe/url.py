@@ -68,6 +68,9 @@ def raise_api_error(r):
     elif isinstance(error, dict):
         api_error_message = '\n'.join('Error on {}: {}'.format(f, m)
                                       for f, m in error.iteritems())
+    elif isinstance(error, list):
+        api_error_message = 'Error on {}: {}'.format(data['name'],
+                                                     '\n'.join(error))
 
     if api_error_message:
         raise APIError(api_error_message, response=r)
@@ -80,7 +83,7 @@ def raise_for_status(r):
     if 400 <= r.status_code < 500:
         if r.headers['content-type'] == 'application/json':
             raise_api_error(r)
-        http_error_msg = '{} Client Error: {} for url:'\
+        http_error_msg = '{} Client Error: {} for url: '\
                          '{}'.format(r.status_code, r.reason, r.url)
     elif 500 <= r.status_code < 600:
         http_error_msg = '{} Server Error: {} for url: '\
