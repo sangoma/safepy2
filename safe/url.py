@@ -52,35 +52,61 @@ class APIResponse(object):
         return self.status
 
 
+def flatten_error(error, parent=''):
+    for path, value in error.iteritems():
+        fullpath = '/'.join((parent, path)) if parent else path
+        if isinstance(value, dict):
+            for message in flatten_error(value, fullpath):
+                yield message
+        else:
+            yield ': '.join((fullpath, value))
+
+
 def raise_api_error(r):
     """Raises stored :class:`APIError`, if one occurred."""
 
     data = r.json()
     api_error_message = None
 
+    # Beware the bizarre formatting of error messages! The error field
+    # can be, infuriatingly, one of a few possible types:
+    #
+    #   - an actual, raw, unwrapped error message
+    #   - an error key with a raw message (like in the case of Conflict)
+    #   - an error key with a list of strings that need to be joined
+    #     into a full message
+    #   - an error key holding a dictionary with a 'message' key
+    #   - an error key holding a nested set of dictionaries representing
+    #     paths and corresponding messages
+    #   - potentially yet even more, bizarre, inconsistent styles
     if isinstance(data, basestring):
         raise APIError(data, response=r)
 
-    error = data.get('error', None)
-    if error == 'Conflict':
-        api_error_message = "The key '{}' is in conficts with the "\
-                            "system".format(data['name'])
-        raise APIError(api_error_message, response=r)
-
-    # The error field can be, infuriatingly, one of a few possible
-    # types: a straight error message (liw above with Conflict),
-    # a dictionary ({'message': ...}), or a list of seperate lines.
-    try:
-        message = error.get('message')
-    except AttributeError:
+    error = data.get('error')
+    if isinstance(error, basestring):
         message = error
+    elif isinstance(error, list):
+        message = '\n'.join(error)
+    elif isinstance(error, dict):
+        message = error.get('message')
+        if not message:
+            message = '\n'.join(flatten_error(error))
+    else:
+        # If we don't understand, bail. We'll raise the fallback generic
+        # Client Error message instead.
+        return
 
-    if isinstance(message, list):
-        message = '\n'.join(message)
+    name = data.get('name')
 
-    if message:
-        api_error_message = 'Error on {}: {}'.format(data['name'], message)
-        raise APIError(api_error_message, response=r)
+    if message == 'Conflict':
+        api_error_message = "The key '{}' is in conflicts with the "\
+                            "system".format(name)
+    elif name:
+        api_error_message = 'Error for {}: {}'.format(name, message)
+    else:
+        api_error_message = message
+
+    raise APIError(api_error_message, response=r)
 
 
 def raise_for_status(r):
