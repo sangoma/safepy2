@@ -19,7 +19,7 @@ def _parse_object(tag, spec, path=(), cls=ObjectNode):
 
     def parse_node(section, cls):
         subspec = spec.pop(section, None)
-        if not subspec:
+        if not subspec or not isinstance(subspec, dict):
             return []
         return [_parse_object(*d, path=new_path, cls=cls)
                 for d in subspec.iteritems()]
