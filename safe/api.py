@@ -127,7 +127,7 @@ class APICollection(object):
         self.interface = [t.tag for t in self.node.cls]
         self._ub = ub
 
-    def list(self, filter_expr=None):
+    def _list(self, filter_expr=None):
         if not filter_expr:
             return self._ub.get('api', 'list').data
 
@@ -147,20 +147,26 @@ class APICollection(object):
     def retrieve(self, key):
         return self._ub(key).get('api', 'retrieve').data
 
+    def keys(self):
+        return self._list()
+
+    def search(self, filter_expr):
+        return iter(self[item] for item in self._list(filter_expr))
+
     def __getitem__(self, key):
         return compile_child(self.node, self._ub(key))
 
     def __contains__(self, key):
-        return key in self.list()
+        return key in self._list()
 
     def __iter__(self):
-        return iter(self[item] for item in self.list())
+        return iter(self[item] for item in self._list())
 
     def __len__(self):
-        return len(self.list())
+        return len(self._list())
 
     def __repr__(self):
-        return '{}({!r})'.format(self.__class__.__name__, self.list())
+        return '{}({!r})'.format(self.__class__.__name__, self._list())
 
 
 class APIObject(object):
