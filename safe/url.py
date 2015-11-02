@@ -18,7 +18,7 @@ demand.
 
 import json
 import requests
-import urlparse
+from six.moves.urllib.parse import urljoin
 
 
 class APIError(requests.HTTPError):
@@ -171,7 +171,7 @@ class UrlBuilder(object):
         '''
         prefix = (prefix, method) if method else (prefix,)
         segments = prefix + self.segments + tuple(keys)
-        return urlparse.urljoin(self.base, '/'.join(segments))
+        return urljoin(self.base, '/'.join(segments))
 
     def upload(self, prefix, filename, payload=None):
         if not payload:

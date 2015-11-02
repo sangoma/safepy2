@@ -8,7 +8,10 @@ setup(name='safepy2',
       author_email='sgomizelj@sangoma.com',
       url='http://github.com/sangoma/safepy2',
       packages = ['safe'],
-      use_2to3 = True,
+      install_requires=[
+          'six',
+          'requests'
+      ],
       classifiers=['Development Status :: 3 - Alpha',
                    'Intended Audience :: Developers',
                    'Operating System :: POSIX',

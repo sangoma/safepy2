@@ -22,9 +22,8 @@ def make_typename(name):
     a strict more will raise an exception instead'''
 
     if name is None:
-        return 'RestObject'
+        return str('RestObject')
 
-    name = name.encode('ascii', 'ignore')
     name = name.replace(' ', '')
     name = re.sub('[^a-zA-Z0-9_]', '_', name)
 
@@ -39,7 +38,7 @@ def make_typename(name):
         raise ValueError('Type names and field names cannot be a '
                          'keyword: {!r}'.format(name))
 
-    return name
+    return str(name)
 
 
 def make_docstring(description):
@@ -50,9 +49,9 @@ def make_docstring(description):
         return None
 
     if isinstance(description, list):
-        return '\n'.join(description)
+        description = '\n'.join(description)
 
-    return description
+    return str(description)
 
 
 # {{{ Make Functions

@@ -10,11 +10,12 @@ represeting its structure.
 '''
 
 
-from .nodes import *
+import six
+from . import nodes
 from .url import url_builder
 
 
-def _parse_object(tag, spec, path=(), cls=ObjectNode):
+def _parse_object(tag, spec, path=(), cls=nodes.ObjectNode):
     new_path = path + (tag,)
 
     def parse_node(section, cls):
@@ -22,16 +23,16 @@ def _parse_object(tag, spec, path=(), cls=ObjectNode):
         if not subspec or not isinstance(subspec, dict):
             return []
         return [_parse_object(*d, path=new_path, cls=cls)
-                for d in subspec.iteritems()]
+                for d in six.iteritems(subspec)]
 
     return cls(tag, new_path, spec,
-               objs=parse_node('object', ObjectNode),
-               cls=parse_node('class', ClassNode),
-               methods=parse_node('methods', MethodNode))
+               objs=parse_node('object', nodes.ObjectNode),
+               cls=parse_node('class', nodes.ClassNode),
+               methods=parse_node('methods', nodes.MethodNode))
 
 
 def parse(spec):
-    return [_parse_object(*d) for d in spec.iteritems()]
+    return [_parse_object(*d) for d in six.iteritems(spec)]
 
 
 def parse_from_url(host, port=80, scheme='http', token=None):
