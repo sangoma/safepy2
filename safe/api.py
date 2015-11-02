@@ -124,6 +124,7 @@ class API(object):
 class APICollection(object):
     def __init__(self, node, ub):
         self.node = node
+        self.interface = [t.tag for t in self.node.cls]
         self._ub = ub
 
     def list(self, filter_expr=None):
