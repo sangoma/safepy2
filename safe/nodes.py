@@ -1,11 +1,3 @@
-class RestError(Exception):
-    def __str__(self):
-        path = '.'.join(self.message['obj'].path)
-        message = self.message['message']
-
-        return '{}: {}'.format(path, message)
-
-
 class Node(dict):
     def __init__(self, tag, path, spec, objs=None, cls=None, methods=None):
         self.tag = tag
