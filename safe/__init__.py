@@ -6,4 +6,5 @@
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
 from .api import api
+from .url import APIError
 from .parser import parse_from_url
