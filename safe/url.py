@@ -90,7 +90,13 @@ def raise_api_error(r):
     elif isinstance(error, dict):
         message = error.get('message')
         if not message:
-            message = '\n'.join(flatten_error(error))
+            message = error.get('msg')
+            if not message:
+                message = '\n'.join(flatten_error(error))
+            else:
+                obj = error['obj'][0]
+                message = "In use by {} '{}'".format(obj['obj_type'],
+                                                     obj['obj_name'])
     else:
         # If we don't understand, bail. We'll raise the fallback generic
         # Client Error message instead.
