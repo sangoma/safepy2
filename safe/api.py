@@ -55,16 +55,19 @@ def make_docstring(description):
 
 
 # {{{ Make Functions
-def make_getter(attr):
-    def getter(self):
-        return self.retrieve()[attr]
-    return getter
+class safeprop(object):
+    def __init__(self, name, docstring):
+        self.__doc__ = docstring
+        self.name = name
 
+    def __get__(self, obj, cls):
+        return obj.retrieve()[self.name]
 
-def make_setter(attr):
-    def setter(self, value):
-        self.update({attr: value})
-    return setter
+    def __set__(self, obj, value):
+        self.update({self.name: value})
+
+    def __delete__(self, obj):
+        raise AttributeError("Can't delete attribute")
 
 
 def make_get_method(ub, nodeid, *arg):
@@ -233,9 +236,7 @@ def compile_properties(ast):
     namespace = {}
     for node in ast:
         propname, docstring = make_typename(node.tag), node.get('help', None)
-        namespace[propname] = property(make_getter(node.tag),
-                                       make_setter(node.tag),
-                                       None, docstring)
+        namespace[propname] = safeprop(node.tag, docstring)
 
     return namespace
 
