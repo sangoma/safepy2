@@ -54,7 +54,6 @@ def make_docstring(description):
     return str(description)
 
 
-# {{{ Make Functions
 class safeprop(object):
     def __init__(self, name, docstring):
         self.__doc__ = docstring
@@ -68,41 +67,6 @@ class safeprop(object):
 
     def __delete__(self, obj):
         raise AttributeError("Can't delete attribute")
-
-
-def make_get_method(ub, nodeid, *arg):
-    def get(self, *args):
-        r = ub.get('api', nodeid, keys=args)
-        assert r.mimetype == 'application/json'
-        return r.data
-    return get
-
-
-def make_post_method(ub, nodeid):
-    def post(self, *args):
-        if args and isinstance(args[-1], dict):
-            r = ub.post('api', nodeid,
-                        keys=args[:-1],
-                        data=args[-1])
-        else:
-            r = ub.post('api', nodeid, keys=args)
-
-        assert r.mimetype == 'application/json'
-        return r.data
-    return post
-
-
-def make_upload_method(ub, nodeid):
-    def get(self, filename, payload=None):
-        return ub.upload('api', filename, payload=None).data
-    return get
-
-
-def make_download_method(ub, nodeid, *arg):
-    def get(self, *args):
-        return ub.get('api', nodeid, keys=args).content
-    return get
-# }}}
 
 
 class API(object):
@@ -207,6 +171,36 @@ def compile_methods(ast, ub, cls):
     '''Compile all the methods specified in the json 'methods' section.
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
+
+    def make_upload_method(ub, nodeid):
+        def upload(self, filename, payload=None):
+            return ub.upload('api', filename, payload=None).data
+        return upload
+
+    def make_download_method(ub, nodeid, *arg):
+        def download(self, *args):
+            return ub.get('api', nodeid, keys=args).content
+        return download
+
+    def make_get_method(ub, nodeid, *arg):
+        def get(self, *args):
+            r = ub.get('api', nodeid, keys=args)
+            assert r.mimetype == 'application/json'
+            return r.data
+        return get
+
+    def make_post_method(ub, nodeid):
+        def post(self, *args):
+            if args and isinstance(args[-1], dict):
+                r = ub.post('api', nodeid,
+                            keys=args[:-1],
+                            data=args[-1])
+            else:
+                r = ub.post('api', nodeid, keys=args)
+
+            assert r.mimetype == 'application/json'
+            return r.data
+        return post
 
     namespace = {'ident': ub.segments[-1]}
     for node in ast:
