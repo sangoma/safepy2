@@ -59,7 +59,7 @@ def flatten_error(error, parent=''):
             for message in flatten_error(value, fullpath):
                 yield message
         else:
-            yield ': '.join((fullpath, value))
+            yield ': '.join((fullpath, value or 'unknown error'))
 
 
 def raise_api_error(r):
