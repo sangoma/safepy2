@@ -63,7 +63,7 @@ class safeprop(object):
         return obj.retrieve()[self.name]
 
     def __set__(self, obj, value):
-        self.update({self.name: value})
+        obj.update({self.name: value})
 
     def __delete__(self, obj):
         raise AttributeError("Can't delete attribute")
