@@ -123,8 +123,7 @@ class APICollection(object):
 
 class APIObject(object):
     def __init__(self, node, ub):
-        self.node = node
-        self.interface = [t.tag for t in node.cls]
+        self._interface = [t.tag for t in node.cls]
         self._ub = ub
 
     def retrieve(self):
@@ -132,6 +131,9 @@ class APIObject(object):
 
     def update(self, data):
         self._ub.post('api', 'update', data=data).data
+
+    def __contains__(self, key):
+        return key in self._interface
 
     def __getitem__(self, key):
         return self.retrieve()[key]
@@ -145,9 +147,11 @@ class APIObject(object):
 
 class APIModule(object):
     def __init__(self, node, ub):
-        self.node = node
-        self.interface = [t.tag for t in node.cls]
+        self._interface = [t.tag for t in node.cls]
         self._ub = ub
+
+    def __contains__(self, key):
+        return key in self._interface
 
     def __getitem__(self, key):
         return self.retrieve()[key]
