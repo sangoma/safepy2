@@ -87,6 +87,9 @@ class APICollection(object):
                              data={'filter': filter_expr}).data
 
     def create(self, key, data={}):
+        if 'display-name' in self.interface and 'display-name' not in data:
+            data['display-name'] = key
+
         self._ub(key).post('api', 'create', data=data)
         return self[key]
 
