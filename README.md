@@ -76,21 +76,9 @@ A getitem interface is exposed for fetching objects.
 
 ~~~python
 >>> profile = api.sip.profile['example-profile']
-~~~
-
-From there, there are currently two ways of accessing attributes of
-that profile:
-
-~~~python
->>> profile.sip_ip
-u'ip_3'
 >>> profile['sip-ip']
 u'ip_3'
 ~~~
-
-Behind the scenes, a mapping between attributes exposed from NSC are
-mapped to valid python typenames (invalid characters are mapped to
-'`_`').
 
 ### Commiting changes
 

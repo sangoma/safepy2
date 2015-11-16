@@ -54,21 +54,6 @@ def make_docstring(description):
     return str(description)
 
 
-class safeprop(object):
-    def __init__(self, name, docstring):
-        self.__doc__ = docstring
-        self.name = name
-
-    def __get__(self, obj, cls):
-        return obj.retrieve()[self.name]
-
-    def __set__(self, obj, value):
-        obj.update({self.name: value})
-
-    def __delete__(self, obj):
-        raise AttributeError("Can't delete attribute")
-
-
 class API(object):
     def commit(self):
         state = self.nsc.configuration.status()
@@ -91,7 +76,7 @@ class API(object):
 class APICollection(object):
     def __init__(self, node, ub):
         self.node = node
-        self.interface = [t.tag for t in self.node.cls]
+        self.interface = [t.tag for t in node.cls]
         self._ub = ub
 
     def _list(self, filter_expr=None):
@@ -137,7 +122,9 @@ class APICollection(object):
 
 
 class APIObject(object):
-    def __init__(self, ub):
+    def __init__(self, node, ub):
+        self.node = node
+        self.interface = [t.tag for t in node.cls]
         self._ub = ub
 
     def retrieve(self):
@@ -157,7 +144,9 @@ class APIObject(object):
 
 
 class APIModule(object):
-    def __init__(self, ub):
+    def __init__(self, node, ub):
+        self.node = node
+        self.interface = [t.tag for t in node.cls]
         self._ub = ub
 
     def __getitem__(self, key):
@@ -223,18 +212,6 @@ def compile_methods(ast, ub, cls):
     return namespace
 
 
-def compile_properties(ast):
-    '''Compile all the attributes specified in the json 'class' section.
-    Implemented as properties on the resulting class'''
-
-    namespace = {}
-    for node in ast:
-        propname, docstring = make_typename(node.tag), node.get('help', None)
-        namespace[propname] = safeprop(node.tag, docstring)
-
-    return namespace
-
-
 def object_template(node):
     typename = make_typename(node.get('name', None))
     docstring = make_docstring(node.get('description', None))
@@ -246,11 +223,10 @@ def compile_child(node, ub):
     typename, namespace = object_template(node)
     cls = APIObject if node.isobject else APIModule
 
-    namespace.update(compile_properties(node.cls))
     namespace.update(compile_objects(node.objs, ub))
     namespace.update(compile_methods(node.methods, ub, cls))
 
-    return type(typename, (cls,), namespace)(ub)
+    return type(typename, (cls,), namespace)(node, ub)
 
 
 def compile_collection(node, ub):
