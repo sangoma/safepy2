@@ -170,7 +170,7 @@ def compile_methods(ast, ub, cls):
 
     def make_upload_method(ub, nodeid):
         def upload(self, filename, payload=None):
-            return ub.upload('api', filename, payload=None).data
+            return ub.upload('api', filename, payload=payload).data
         return upload
 
     def make_download_method(ub, nodeid, *arg):
