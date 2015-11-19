@@ -66,7 +66,12 @@ class API(object):
         # Changes may still now require us to restart the nsc service
         # to apply
         if state['modified']:
+            status = self.nsc.service.status()['status_text']
+            if status == 'RUNNING':
+                self.nsc.service.stop()
             self.nsc.configuration.apply()
+            if status == 'RUNNING':
+                self.nsc.service.start()
             state = self.nsc.configuration.status()
 
         if state['modified']:
