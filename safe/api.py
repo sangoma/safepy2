@@ -205,7 +205,7 @@ def compile_methods(ast, ub, cls):
 
     namespace = {'ident': ub.segments[-1]}
     for node in ast:
-        if node.tag in cls.__dict__:
+        if node.tag in cls.__dict__ or node.tag == 'list':
             continue
 
         if node.tag == 'upload':
