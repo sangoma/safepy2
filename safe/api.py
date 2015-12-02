@@ -55,6 +55,12 @@ def make_docstring(description):
 
 
 class API(object):
+    def __init__(self, ub):
+        self._ub = ub
+
+    def config(self):
+        return self._ub.get('config').content
+
     def commit(self):
         state = self.nsc.configuration.status()
 
@@ -288,4 +294,4 @@ def api(host, port=80, scheme='http', token=None, specfile=None):
     ast = parse(spec)
     namespace = compile_objects(ast, ub)
     product_cls = type('API', (API,), namespace)
-    return product_cls()
+    return product_cls(ub)
