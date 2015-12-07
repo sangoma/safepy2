@@ -26,7 +26,7 @@ wrappings.
 The `safe.api` library provides a quickly and easy way of getting
 access to a remote product. It fetches the specification file from the
 device and uses it to dynamically generates a wrapper around the
-described documentation. Care it taken to try and attach documentation
+described documentation. Care is taken to try and attach documentation
 to `__doc__` fields where it's provided, so the resulting wrapper
 should be fairly well documented internally.
 
