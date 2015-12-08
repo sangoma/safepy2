@@ -151,11 +151,11 @@ class UrlBuilder(object):
     a path and allows itself to be cloned to append more information.
     '''
 
-    def __init__(self, base, session, segments=None):
+    def __init__(self, base, session, segments=None, timeout=None):
         self.base = base
         self.session = session
         self.segments = segments or ()
-
+        self.timeout = timeout
 
     def __call__(self, *segments):
         '''Create a new copy of the url builder with more segments
@@ -165,7 +165,8 @@ class UrlBuilder(object):
         '''
 
         segments = self.segments + segments
-        return UrlBuilder(self.base, self.session, segments)
+        return UrlBuilder(self.base, self.session, segments,
+                          timeout=self.timeout)
 
     def url(self, prefix, method=None, keys=()):
         '''Render a specific url to string.
@@ -185,22 +186,24 @@ class UrlBuilder(object):
                 payload = archive.read()
 
         data = self.session.post(self.url(prefix, method='upload'),
-                                 files={'archive': (filename, payload)})
+                                 files={'archive': (filename, payload)},
+                                 timeout=self.timeout)
         return unpack_rest_response(data)
 
     def get(self, prefix, method=None, keys=()):
-        data = self.session.get(self.url(prefix, method=method, keys=keys))
+        data = self.session.get(self.url(prefix, method=method, keys=keys),
+                                timeout=self.timeout)
         return unpack_rest_response(data)
 
     def post(self, prefix, method=None, keys=(), data=None):
         postdata = json.dumps(data) if data else None
         safe_url = self.url(prefix, method=method, keys=keys)
-        data = self.session.post(safe_url, data=postdata,
+        data = self.session.post(safe_url, data=postdata, timeout=self.timeout,
                                  headers={'Content-Type': 'application/json'})
         return unpack_rest_response(data)
 
 
-def url_builder(host, port=80, scheme='http', token=None):
+def url_builder(host, port=80, scheme='http', token=None, timeout=None):
     '''Construct a :class:`sangoma.safepy.url.UrlBuilder` to help build
     urls. Calculates a correct base for the url from the host, port and
     scheme.
@@ -222,7 +225,7 @@ def url_builder(host, port=80, scheme='http', token=None):
     if token:
         session.headers['X-API-KEY'] = token
 
-    return UrlBuilder(base, session)
+    return UrlBuilder(base, session, timeout=timeout)
 
 
 def dump_docs(filepath, host, port=80, scheme='http', token=None):
