@@ -270,7 +270,7 @@ def compile_objects(ast, ub):
     return {make_typename(n.tag): compile_object(n, ub) for n in ast}
 
 
-def api(host, port=80, scheme='http', token=None, specfile=None):
+def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
     '''Connects to a remote device, download the json specification
     describing the supported rest calls and dynamically compile a new
     object to wrap the rest.
@@ -284,7 +284,7 @@ def api(host, port=80, scheme='http', token=None, specfile=None):
     :returns: the dynamically generated code.
     '''
 
-    ub = url_builder(host, port, scheme, token=token)
+    ub = url_builder(host, port, scheme, token=token, timeout=timeout)
     if not specfile:
         spec = ub.get('doc').content
     else:
