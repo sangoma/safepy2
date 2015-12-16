@@ -86,17 +86,11 @@ class API(object):
 
 
 class APICollection(object):
-    def __init__(self, node, ub):
+    def __init__(self, node, version, ub):
         self.node = node
         self.interface = [t.tag for t in node.cls]
+        self._version = version
         self._ub = ub
-
-    def _list(self, filter_expr=None):
-        if not filter_expr:
-            return self._ub.get('api', 'list').data
-
-        return self._ub.post('api', 'list',
-                             data={'filter': filter_expr}).data
 
     def create(self, key, data={}):
         if 'display-name' in self.interface and 'display-name' not in data:
@@ -115,32 +109,41 @@ class APICollection(object):
         return self._ub(key).get('api', 'retrieve').data
 
     def keys(self):
-        return self._list()
+        return self._ub.get('api', 'list').data
 
     def search(self, filter_expr):
-        return iter(self[item] for item in self._list(filter_expr))
+        if not filter_expr:
+            keys = self._ub.get('api', 'list').data
+        elif self._version >= (2, 2):
+            keys = self._ub.post('api', 'list',
+                                 data={'filter': filter_expr}).data
+        else:
+            raise NotImplementedError("No REST support for searching on 2.1")
+
+        return iter(self[key] for key in keys)
 
     def __contains__(self, key):
         return key in self._interface
 
     def __getitem__(self, key):
-        return compile_child(self.node, self._ub(key))
+        return compile_child(self.node, self._version, self._ub(key))
 
     def __contains__(self, key):
-        return key in self._list()
+        return key in self.keys()
 
     def __iter__(self):
-        return iter(self[item] for item in self._list())
+        return iter(self[key] for key in self.keys())
 
     def __len__(self):
-        return len(self._list())
+        return len(self.keys())
 
     def __repr__(self):
-        return '{}({!r})'.format(self.__class__.__name__, self._list())
+        return '{}({!r})'.format(self.__class__.__name__, self.keys())
 
 
 class APIObject(object):
-    def __init__(self, node, ub):
+    def __init__(self, node, version, ub):
+        self._version = version
         self._interface = [t.tag for t in node.cls]
         self._ub = ub
 
@@ -164,7 +167,8 @@ class APIObject(object):
 
 
 class APIModule(object):
-    def __init__(self, node, ub):
+    def __init__(self, node, version, ub):
+        self._version = version
         self._interface = [t.tag for t in node.cls]
         self._ub = ub
 
@@ -241,37 +245,41 @@ def object_template(node):
     return typename, {'__doc__': docstring}
 
 
-def compile_child(node, ub):
+def compile_child(node, version, ub):
     typename, namespace = object_template(node)
     cls = APIObject if node.isobject else APIModule
 
-    namespace.update(compile_objects(node.objs, ub))
+    namespace.update(compile_objects(node.objs, version, ub))
     namespace.update(compile_methods(node.methods, ub, cls))
 
-    return type(typename, (cls,), namespace)(node, ub)
+    return type(typename, (cls,), namespace)(node, version, ub)
 
 
-def compile_collection(node, ub):
+def compile_collection(node, version, ub):
     typename, namespace = object_template(node)
 
     namespace.update(compile_methods(node.methods, ub, APICollection))
-    return type(typename, (APICollection,), namespace)(node, ub)
+    return type(typename, (APICollection,), namespace)(node, version, ub)
 
 
-def compile_object(node, ub):
+def compile_object(node, version, ub):
     '''Compile an object from the json specification. An object can be
     composed of methods and other objects. In the case that the object
     is not marked as a 'singleton', treat is like a collection and tack
     on a __getitem__ handler.'''
 
     if node.singleton:
-        return compile_child(node, ub(node.tag))
+        return compile_child(node, version, ub(node.tag))
     else:
-        return compile_collection(node, ub(node.tag))
+        return compile_collection(node, version, ub(node.tag))
 
 
-def compile_objects(ast, ub):
-    return {make_typename(n.tag): compile_object(n, ub) for n in ast}
+def compile_objects(ast, version, ub):
+    def builder():
+        for node in ast:
+            obj = compile_object(node, version, ub)
+            yield make_typename(node.tag), obj
+    return dict(builder())
 
 
 def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
@@ -295,7 +303,11 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
         with open(specfile) as fp:
             spec = json.load(fp)
 
+    version_data = ub.get('api', 'retrieve', keys=('nsc', 'version')).data
+    version = (int(version_data['major_version']),
+               int(version_data['minor_version']))
+
     ast = parse(spec)
-    namespace = compile_objects(ast, ub)
+    namespace = compile_objects(ast, version, ub)
     product_cls = type('API', (API,), namespace)
     return product_cls(ast, ub)
