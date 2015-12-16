@@ -55,7 +55,8 @@ def make_docstring(description):
 
 
 class API(object):
-    def __init__(self, ub):
+    def __init__(self, node, ub):
+        self.interface = [t.tag for t in node]
         self._ub = ub
 
     def config(self):
@@ -118,6 +119,9 @@ class APICollection(object):
 
     def search(self, filter_expr):
         return iter(self[item] for item in self._list(filter_expr))
+
+    def __contains__(self, key):
+        return key in self._interface
 
     def __getitem__(self, key):
         return compile_child(self.node, self._ub(key))
@@ -294,4 +298,4 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
     ast = parse(spec)
     namespace = compile_objects(ast, ub)
     product_cls = type('API', (API,), namespace)
-    return product_cls(ub)
+    return product_cls(ast, ub)
