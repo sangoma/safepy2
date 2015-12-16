@@ -122,9 +122,6 @@ class APICollection(object):
 
         return iter(self[key] for key in keys)
 
-    def __contains__(self, key):
-        return key in self._interface
-
     def __getitem__(self, key):
         return compile_child(self.node, self._version, self._ub(key))
 
