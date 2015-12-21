@@ -114,7 +114,7 @@ class APICollection(object):
     def search(self, filter_expr):
         if not filter_expr:
             keys = self._ub.get('api', 'list').data
-        elif self._version >= (2, 2):
+        elif self._version >= (2, 1, 13):
             keys = self._ub.post('api', 'list',
                                  data={'filter': filter_expr}).data
         else:
@@ -302,7 +302,8 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
 
     version_data = ub.get('api', 'retrieve', keys=('nsc', 'version')).data
     version = (int(version_data['major_version']),
-               int(version_data['minor_version']))
+               int(version_data['minor_version']),
+               int(version_data['patch_version']))
 
     ast = parse(spec)
     namespace = compile_objects(ast, version, ub)
