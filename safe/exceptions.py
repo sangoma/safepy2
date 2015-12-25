@@ -27,20 +27,6 @@ class APIError(requests.HTTPError):
     pass
 
 
-class CommitFailed(APIError):
-    def __init__(self, reasons, response=None):
-        super(CommitFailed, self).__init__('Commit failed', response=response)
-        self.reasons = reasons
-
-    @classmethod
-    def fromjson(cls, json, response=None):
-        return cls((Reason(reason) for reason in json), response=response)
-
-    def __str__(self):
-        reasons = (str(reason) for reason in self.reasons)
-        return u'Apply changes failed: {}'.format('\n'.join(reasons))
-
-
 class Reason(object):
     def __init__(self, reason):
         self.name = reason['obj_name']
@@ -50,6 +36,20 @@ class Reason(object):
 
     def __str__(self):
         return self.description
+
+
+class CommitFailed(APIError):
+    def __init__(self, reasons, response=None):
+        super(CommitFailed, self).__init__('Commit failed', response=response)
+        self.reasons = reasons
+
+    @classmethod
+    def fromjson(cls, json, response=None):
+        return cls([Reason(reason) for reason in json], response=response)
+
+    def __str__(self):
+        reasons = (str(reason) for reason in self.reasons)
+        return u'Apply changes failed: {}'.format('\n'.join(reasons))
 
 
 def raise_from_json(r):
