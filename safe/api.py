@@ -176,7 +176,11 @@ class APIModule(object):
         return self.retrieve()[key]
 
     def __repr__(self):
-        return '{}()'.format(self.__class__.__name__)
+        try:
+            data = self.retrieve()
+            return '{}({!r})'.format(self.__class__.__name__, data)
+        except AttributeError:
+            return '{}()'.format(self.__class__.__name__)
 
 
 def compile_methods(ast, ub, cls):
