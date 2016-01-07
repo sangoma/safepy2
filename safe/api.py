@@ -8,7 +8,8 @@
 import re
 import json
 import keyword
-from .url import url_builder
+import requests
+from .url import url_builder, unpack_rest_response
 from .parser import parse
 
 
@@ -54,13 +55,67 @@ def make_docstring(description):
     return str(description)
 
 
+class APIWrapper(object):
+    def __init__(self, node, version, session, builder):
+        self.node = node
+        self.version = version
+        self.session = session
+        self.builder = builder
+
+    @property
+    def interface(self):
+        if self.node:
+            return [node.tag for node in self.node.cls]
+
+    def __contains__(self, key):
+        return key in self.interface
+
+    def get_child(self, key):
+        new_builder = self.builder.join(key)
+        new_api = APIWrapper(self.node, self.version, self.session, new_builder)
+        return compile_child(self.node, new_api)
+
+    def get_config(self):
+        safe_url = self.builder.url(None, section='config')
+        return unpack_rest_response(self.session.get(safe_url))
+
+    def upload(self, filename, payload=None):
+        if not payload:
+            with open(filename) as fp:
+                payload = fp.read()
+
+        files = {'archive': (filename, payload)}
+        safe_url = self.builder.url('upload')
+        return unpack_rest_response(self.session.post(safe_url, files=files))
+
+    def get(self, method, path=None):
+        safe_url = self.builder.url(method, path=path)
+        return unpack_rest_response(self.session.get(safe_url))
+
+    def post(self, method, path=None, data=None):
+        postdata = json.dumps(data) if data else None
+        safe_url = self.builder.url(method, path=path)
+        data = self.session.post(safe_url, data=postdata,
+                                 headers={'Content-Type': 'application/json'})
+        return unpack_rest_response(data)
+
+
+def api_wrapper(session, builder):
+    version_url = builder.url('retrieve', path=['nsc', 'version'])
+    version_data = unpack_rest_response(session.get(version_url)).data
+    version = (int(version_data['major_version']),
+               int(version_data['minor_version']),
+               int(version_data['patch_version']))
+
+    return APIWrapper(None, version, session, builder)
+
+
 class API(object):
-    def __init__(self, node, ub):
-        self.interface = [t.tag for t in node]
-        self._ub = ub
+    def __init__(self, api):
+        self.api = api
 
     def config(self):
-        return self._ub.get('config').content
+        return self.api.get_config().content
 
     def commit(self):
         state = self.nsc.configuration.status()
@@ -86,44 +141,41 @@ class API(object):
 
 
 class APICollection(object):
-    def __init__(self, node, version, ub):
-        self.node = node
-        self.interface = [t.tag for t in node.cls]
-        self._version = version
-        self._ub = ub
+    def __init__(self, api):
+        self.api = api
 
-    def create(self, key, data={}):
-        if 'display-name' in self.interface and 'display-name' not in data:
+    def create(self, key, data):
+        if 'display-name' in self.api.interface and 'display-name' not in data:
             data['display-name'] = key
 
-        self._ub(key).post('api', 'create', data=data)
+        self.api.post('create', path=[key], data=data)
         return self[key]
 
     def delete(self, key):
-        self._ub(key).post('api', 'delete')
+        self.api.post('delete', path=[key])
 
     def update(self, key, data):
-        self._ub(key).post('api', 'update', data=data)
+        self.api.post('update', path=[key], data=data)
 
     def retrieve(self, key):
-        return self._ub(key).get('api', 'retrieve').data
+        return self.api.get('retrieve', path=[key]).data
 
     def keys(self):
-        return self._ub.get('api', 'list').data
+        return self.api.get('list').data
 
     def search(self, filter_expr):
         if not filter_expr:
-            keys = self._ub.get('api', 'list').data
-        elif self._version >= (2, 1, 13):
-            keys = self._ub.post('api', 'list',
-                                 data={'filter': filter_expr}).data
+            keys = self.api.get('list').data
+        elif self.api.version >= (2, 1, 13):
+            expression = {'filter': filter_expr}
+            keys = self.api.post('list', data=expression).data
         else:
             raise NotImplementedError("No REST support for searching on 2.1")
 
         return iter(self[key] for key in keys)
 
     def __getitem__(self, key):
-        return compile_child(self.node, self._version, self._ub(key))
+        return self.api.get_child(key)
 
     def __contains__(self, key):
         return key in self.keys()
@@ -139,19 +191,14 @@ class APICollection(object):
 
 
 class APIObject(object):
-    def __init__(self, node, version, ub):
-        self._version = version
-        self._interface = [t.tag for t in node.cls]
-        self._ub = ub
+    def __init__(self, api):
+        self.api = api
 
     def retrieve(self):
-        return self._ub.get('api', 'retrieve').data
+        return self.api.get('retrieve').data
 
     def update(self, data):
-        self._ub.post('api', 'update', data=data).data
-
-    def __contains__(self, key):
-        return key in self._interface
+        return self.api.post('update', data=data).data
 
     def __getitem__(self, key):
         return self.retrieve()[key]
@@ -164,13 +211,8 @@ class APIObject(object):
 
 
 class APIModule(object):
-    def __init__(self, node, version, ub):
-        self._version = version
-        self._interface = [t.tag for t in node.cls]
-        self._ub = ub
-
-    def __contains__(self, key):
-        return key in self._interface
+    def __init__(self, api):
+        self.api = api
 
     def __getitem__(self, key):
         return self.retrieve()[key]
@@ -183,104 +225,95 @@ class APIModule(object):
             return '{}()'.format(self.__class__.__name__)
 
 
-def compile_methods(ast, ub, cls):
+def compile_methods(ast, api, reserved=None):
     '''Compile all the methods specified in the json 'methods' section.
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
 
-    def make_upload_method(ub, nodeid):
+    def make_upload_method(api, nodeid):
         def upload(self, filename, payload=None):
-            return ub.upload('api', filename, payload=payload).data
+            return api.upload(filename, payload=payload).data
         return upload
 
-    def make_download_method(ub, nodeid, *arg):
+    def make_download_method(api, nodeid, *arg):
         def download(self, *args):
-            return ub.get('api', nodeid, keys=args).content
+            return api.get(nodeid, *args).content
         return download
 
-    def make_get_method(ub, nodeid, *arg):
+    def make_get_method(api, nodeid, *arg):
         def get(self, *args):
-            r = ub.get('api', nodeid, keys=args)
+            r = api.get(nodeid, *args)
             assert r.mimetype == 'application/json'
             return r.data
         return get
 
-    def make_post_method(ub, nodeid):
+    def make_post_method(api, nodeid):
         def post(self, *args):
             if args and isinstance(args[-1], dict):
-                r = ub.post('api', nodeid,
-                            keys=args[:-1],
-                            data=args[-1])
+                r = api.post(nodeid, path=args[:-1], data=args[-1])
             else:
-                r = ub.post('api', nodeid, keys=args)
+                r = api.post(nodeid, data=args)
 
             assert r.mimetype == 'application/json'
             return r.data
         return post
 
-    namespace = {'ident': ub.segments[-1]}
     for node in ast:
-        if node.tag in cls.__dict__ or node.tag == 'list':
+        if node.tag == 'list':
+            continue
+        if reserved and node.tag in reserved:
             continue
 
         if node.tag == 'upload':
-            method = make_upload_method(ub, node.tag)
+            method = make_upload_method(api, node.tag)
         elif node.tag == 'download':
-            method = make_download_method(ub, node.tag)
+            method = make_download_method(api, node.tag)
         elif node['request'] == 'GET':
-            method = make_get_method(ub, node.tag)
+            method = make_get_method(api, node.tag)
         elif node['request'] == 'POST':
-            method = make_post_method(ub, node.tag)
+            method = make_post_method(api, node.tag)
 
         method.__name__ = make_typename(node.tag)
         method.__doc__ = make_docstring(node.get('description', None))
-        namespace[method.__name__] = method
-
-    return namespace
+        yield method.__name__, method
 
 
 def object_template(node):
     typename = make_typename(node.get('name', None))
-    docstring = make_docstring(node.get('description', None))
+    return typename, {'ident': node.tag,
+                      '__doc__': make_docstring(node.get('description', None))}
 
-    return typename, {'__doc__': docstring}
 
-
-def compile_child(node, version, ub):
+def compile_child(node, api):
     typename, namespace = object_template(node)
-    cls = APIObject if node.isobject else APIModule
-
-    namespace.update(compile_objects(node.objs, version, ub))
-    namespace.update(compile_methods(node.methods, ub, cls))
-
-    return type(typename, (cls,), namespace)(node, version, ub)
+    namespace.update(compile_objects(node.objs, api))
+    namespace.update(compile_methods(node.methods, api, APIObject.__dict__))
+    return type(typename, (APIObject,), namespace)(api)
 
 
-def compile_collection(node, version, ub):
+def compile_module(node, api):
     typename, namespace = object_template(node)
-
-    namespace.update(compile_methods(node.methods, ub, APICollection))
-    return type(typename, (APICollection,), namespace)(node, version, ub)
-
-
-def compile_object(node, version, ub):
-    '''Compile an object from the json specification. An object can be
-    composed of methods and other objects. In the case that the object
-    is not marked as a 'singleton', treat is like a collection and tack
-    on a __getitem__ handler.'''
-
-    if node.singleton:
-        return compile_child(node, version, ub(node.tag))
-    else:
-        return compile_collection(node, version, ub(node.tag))
+    namespace.update(compile_objects(node.objs, api))
+    namespace.update(compile_methods(node.methods, api))
+    return type(typename, (APIModule,), namespace)(api)
 
 
-def compile_objects(ast, version, ub):
-    def builder():
-        for node in ast:
-            obj = compile_object(node, version, ub)
-            yield make_typename(node.tag), obj
-    return dict(builder())
+def compile_collection(node, api):
+    typename, namespace = object_template(node)
+    namespace.update(compile_methods(node.methods, api, APICollection.__dict__))
+    return type(typename, (APICollection,), namespace)(api)
+
+
+def compile_objects(ast, api):
+    for node in ast:
+        typename = make_typename(node.tag)
+        new_builder = api.builder.join(node.tag)
+        new_api = APIWrapper(node, api.version, api.session, new_builder)
+
+        if node.singleton:
+            yield typename, compile_module(node, new_api)
+        else:
+            yield typename, compile_collection(node, new_api)
 
 
 def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
@@ -296,20 +329,21 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
     :type scheme: str
     :returns: the dynamically generated code.
     '''
+    builder = url_builder(host, port, scheme)
+    session = requests.session()
+    if timeout:
+        session.timeout = timeout
+    if token:
+        session.headers['X-API-KEY'] = token
 
-    ub = url_builder(host, port, scheme, token=token, timeout=timeout)
+    api = api_wrapper(session, builder)
     if not specfile:
-        spec = ub.get('doc').content
+        r = session.get(builder.url(None, section='doc'))
+        spec = unpack_rest_response(r).content
     else:
         with open(specfile) as fp:
             spec = json.load(fp)
 
-    version_data = ub.get('api', 'retrieve', keys=('nsc', 'version')).data
-    version = (int(version_data['major_version']),
-               int(version_data['minor_version']),
-               int(version_data['patch_version']))
-
-    ast = parse(spec)
-    namespace = compile_objects(ast, version, ub)
+    namespace = dict(compile_objects(parse(spec), api))
     product_cls = type('API', (API,), namespace)
-    return product_cls(ast, ub)
+    return product_cls(api)

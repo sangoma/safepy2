@@ -17,9 +17,10 @@ demand.
 '''
 
 import json
+import itertools
 import requests
-from exceptions import APIError, raise_from_json
 from six.moves.urllib.parse import urljoin
+from .exceptions import APIError, raise_from_json
 
 
 class APIResponse(object):
@@ -76,33 +77,24 @@ def unpack_rest_response(r):
 
 
 class UrlBuilder(object):
-    '''
-    .. note::
-       This class isn't intended to be constructed directly, use
-       :func:`sangoma.safepy.url.url_builder` instead.
-
-    Builder for SAFe REST api urls. A functional structure which stores
-    a path and allows itself to be cloned to append more information.
+    '''Builder for SAFe REST api urls. A functional structure which
+    stores a path and allows itself to be cloned to append more
+    information.
     '''
 
-    def __init__(self, base, session, segments=None, timeout=None):
+    def __init__(self, base, segments=None):
         self.base = base
-        self.session = session
         self.segments = segments or ()
-        self.timeout = timeout
 
-    def __call__(self, *segments):
+    def join(self, *segments):
         '''Create a new copy of the url builder with more segments
         appended to the new object builder.
 
         :param args: Any positional arguments for appending.
         '''
+        return UrlBuilder(self.base, self.segments + segments)
 
-        segments = self.segments + segments
-        return UrlBuilder(self.base, self.session, segments,
-                          timeout=self.timeout)
-
-    def url(self, prefix, method=None, keys=()):
+    def url(self, method, path=None, section='api'):
         '''Render a specific url to string.
 
         :param prefix: The prefix, for example, 'doc' or 'api'.
@@ -110,34 +102,12 @@ class UrlBuilder(object):
         :param method: The optional method, if generating a method call.
         :type method: str
         '''
-        prefix = (prefix, method) if method else (prefix,)
-        segments = prefix + self.segments + tuple(keys)
+        prefix = (section, method) if method else (section,)
+        segments = itertools.chain(prefix, self.segments, path or [])
         return urljoin(self.base, '/'.join(segments))
 
-    def upload(self, prefix, filename, payload=None):
-        if not payload:
-            with open(filename) as archive:
-                payload = archive.read()
 
-        data = self.session.post(self.url(prefix, method='upload'),
-                                 files={'archive': (filename, payload)},
-                                 timeout=self.timeout)
-        return unpack_rest_response(data)
-
-    def get(self, prefix, method=None, keys=()):
-        data = self.session.get(self.url(prefix, method=method, keys=keys),
-                                timeout=self.timeout)
-        return unpack_rest_response(data)
-
-    def post(self, prefix, method=None, keys=(), data=None):
-        postdata = json.dumps(data) if data else None
-        safe_url = self.url(prefix, method=method, keys=keys)
-        data = self.session.post(safe_url, data=postdata, timeout=self.timeout,
-                                 headers={'Content-Type': 'application/json'})
-        return unpack_rest_response(data)
-
-
-def url_builder(host, port=80, scheme='http', token=None, timeout=None):
+def url_builder(host, port=80, scheme='http'):
     '''Construct a :class:`sangoma.safepy.url.UrlBuilder` to help build
     urls. Calculates a correct base for the url from the host, port and
     scheme.
@@ -151,22 +121,24 @@ def url_builder(host, port=80, scheme='http', token=None, timeout=None):
     :returns: A url builder for the hostname details.
     '''
 
-    base = '{scheme}://{host}:{port}/SAFe/sng_rest/'.format(host=host,
-                                                            port=port,
-                                                            scheme=scheme)
+    base_url = '{scheme}://{host}:{port}/SAFe/sng_rest/'.format(host=host,
+                                                                port=port,
+                                                                scheme=scheme)
+    return UrlBuilder(base_url)
 
-    session = requests.Session()
+
+def get_documentation(host, port=80, scheme='http', token=None, timeout=None):
+    headers = {}
     if token:
-        session.headers['X-API-KEY'] = token
+        headers['X-API-KEY'] = token
 
-    return UrlBuilder(base, session, timeout=timeout)
+    builder = url_builder(host, port, scheme)
+    safeurl = builder.url(None, section='doc')
+    r = requests.get(safeurl, headers=headers, timeout=timeout)
+    return unpack_rest_response(r).content
 
 
-def dump_docs(filepath, host, port=80, scheme='http', token=None):
-    ub = url_builder(host, port, scheme, token=token)
+def dump_docs(filepath, *args, **kwargs):
     with open(filepath, 'w') as fp:
-        json_spec = ub.get('doc').content
-        json.dump(json_spec, fp,
-                  sort_keys=True,
-                  indent=4,
-                  separators=(',', ': '))
+        json.dump(get_documentation(*args, **kwargs),
+                  fp, sort_keys=True, indent=4, separators=(',', ': '))

@@ -11,17 +11,17 @@ represeting its structure.
 
 
 import six
-from .url import url_builder
+from .url import get_documentation
 
 
 class Node(dict):
     def __init__(self, tag, path, spec, objs=None, cls=None, methods=None):
+        super(Node, self).__init__()
         self.tag = tag
         self.path = path
         self.objs = objs
         self.cls = cls
         self.methods = methods
-
         self.update(spec)
 
     def __repr__(self):
@@ -76,7 +76,7 @@ def parse(spec):
     return [_parse_object(*d) for d in six.iteritems(spec)]
 
 
-def parse_from_url(host, port=80, scheme='http', token=None):
+def parse_from_url(*args, **kwargs):
     '''Parse the SAFe documentation specification.
 
     :param name: The hostname of the device to connect to.
@@ -87,5 +87,4 @@ def parse_from_url(host, port=80, scheme='http', token=None):
     :type scheme: str
     :returns: The abstract syntax tree represeting the specification.
     '''
-    ub = url_builder(host, port, scheme, token=token)
-    return parse(ub.get('doc').content)
+    return parse(get_documentation(*args, **kwargs))

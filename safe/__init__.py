@@ -5,6 +5,6 @@
 # Author(s)
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
-from api import api
-from exceptions import APIError, CommitFailed
-from parser import parse_from_url
+from .api import api
+from .exceptions import APIError, CommitFailed
+from .parser import parse_from_url

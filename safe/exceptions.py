@@ -69,7 +69,7 @@ def raise_from_json(r):
     #     paths and corresponding messages
     #   - potentially yet even more, bizarre, inconsistent styles
     if isinstance(data, basestring):
-        return cls(data, response=r)
+        return APIError(data, response=r)
 
     error = data.get('error')
     if isinstance(error, list):
@@ -86,7 +86,7 @@ def raise_from_json(r):
             else:
                 obj = error['obj'][0]
                 message = "In use by {} '{}'".format(obj['obj_type'],
-                                                        obj['obj_name'])
+                                                     obj['obj_name'])
     else:
         message = str(error)
 
