@@ -5,11 +5,12 @@
 # Author(s)
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
+import six
 import requests
 
 
 def flatten_error(error, parent=''):
-    for path, value in error.iteritems():
+    for path, value in six.iteritems(error):
         fullpath = '/'.join((parent, path)) if parent else path
         if isinstance(value, dict):
             for message in flatten_error(value, fullpath):
@@ -68,7 +69,7 @@ def raise_from_json(r):
     #   - an error key holding a nested set of dictionaries representing
     #     paths and corresponding messages
     #   - potentially yet even more, bizarre, inconsistent styles
-    if isinstance(data, basestring):
+    if isinstance(data, six.string_types):
         return APIError(data, response=r)
 
     error = data.get('error')
