@@ -73,7 +73,7 @@ class APIWrapper(object):
     def get_child(self, key):
         new_builder = self.builder.join(key)
         new_api = APIWrapper(self.node, self.version, self.session, new_builder)
-        return compile_child(self.node, new_api)
+        return compile_child(self.node, new_api, key)
 
     def get_config(self):
         safe_url = self.builder.url(None, section='config')
@@ -191,8 +191,9 @@ class APICollection(object):
 
 
 class APIObject(object):
-    def __init__(self, api):
+    def __init__(self, api, name):
         self.api = api
+        self.ident = name
 
     def retrieve(self):
         return self.api.get('retrieve').data
@@ -280,15 +281,14 @@ def compile_methods(ast, api, reserved=None):
 
 def object_template(node):
     typename = make_typename(node.get('name', None))
-    return typename, {'ident': node.tag,
-                      '__doc__': make_docstring(node.get('description', None))}
+    return typename, {'__doc__': make_docstring(node.get('description', None))}
 
 
-def compile_child(node, api):
+def compile_child(node, api, name):
     typename, namespace = object_template(node)
     namespace.update(compile_objects(node.objs, api))
     namespace.update(compile_methods(node.methods, api, APIObject.__dict__))
-    return type(typename, (APIObject,), namespace)(api)
+    return type(typename, (APIObject,), namespace)(api, name)
 
 
 def compile_module(node, api):
