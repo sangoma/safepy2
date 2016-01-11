@@ -248,14 +248,14 @@ def compile_methods(ast, api, reserved=None):
             return api.upload(filename, payload=payload).data
         return upload
 
-    def make_download_method(api, nodeid, *arg):
+    def make_download_method(api, nodeid):
         def download(self, *args):
-            return api.get(nodeid, *args).content
+            return api.get(nodeid, path=args).content
         return download
 
-    def make_get_method(api, nodeid, *arg):
+    def make_get_method(api, nodeid):
         def get(self, *args):
-            r = api.get(nodeid, *args)
+            r = api.get(nodeid, path=args)
             assert r.mimetype == 'application/json'
             return r.data
         return get
@@ -272,9 +272,7 @@ def compile_methods(ast, api, reserved=None):
         return post
 
     for node in ast:
-        if node.tag == 'list':
-            continue
-        if reserved and node.tag in reserved:
+        if node.tag == 'list' or (reserved and node.tag in reserved):
             continue
 
         if node.tag == 'upload':
