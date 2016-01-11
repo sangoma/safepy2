@@ -30,7 +30,7 @@ class APIError(requests.HTTPError):
 
 class Reason(object):
     def __init__(self, reason):
-        self.name = reason['obj_name']
+        self.name = reason.get('obj_name')
         self.obj = reason['obj_type']
         self.description = reason['description']
         self.module = reason['module']
