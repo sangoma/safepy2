@@ -265,8 +265,7 @@ def compile_methods(ast, api, reserved=None):
             if args and isinstance(args[-1], dict):
                 r = api.post(nodeid, path=args[:-1], data=args[-1])
             else:
-                r = api.post(nodeid, data=args)
-
+                r = api.post(nodeid, path=args)
             assert r.mimetype == 'application/json'
             return r.data
         return post
