@@ -1,4 +1,4 @@
-#vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 
 # Copyright (C) 2014  Sangoma Technologies Corp.
 # All Rights Reserved.
@@ -185,6 +185,9 @@ class APICollection(object):
 
     def __len__(self):
         return len(self.keys())
+
+    def __bool__(self):
+        return bool(self.keys())
 
     def __repr__(self):
         return '{}({!r})'.format(self.__class__.__name__, self.keys())
