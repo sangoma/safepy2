@@ -67,6 +67,11 @@ class APIWrapper(object):
         if self.node:
             return [node.tag for node in self.node.cls]
 
+    @property
+    def methods(self):
+        if self.node:
+            return [node.tag for node in self.node.methods]
+
     def __contains__(self, key):
         return key in self.interface
 
