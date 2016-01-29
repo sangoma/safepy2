@@ -123,23 +123,27 @@ class API(object):
         return self.api.get_config().content
 
     def commit(self):
-        state = self.nsc.configuration.status()
-
-        # Attempt to just reload the NSC configuration
-        if state['modified'] and state['can_reload']:
-            self.nsc.configuration.reload()
+        if 'smartapply' in self.nsc.configuration.api.methods:
+            self.nsc.configuration.smartapply()
+            state = self.nsc.configuration.status()
+        else:
             state = self.nsc.configuration.status()
 
-        # Changes may still now require us to restart the nsc service
-        # to apply
-        if state['modified']:
-            status = self.nsc.service.status()['status_text']
-            if status == 'RUNNING':
-                self.nsc.service.stop()
-            self.nsc.configuration.apply()
-            if status == 'RUNNING':
-                self.nsc.service.start()
-            state = self.nsc.configuration.status()
+            # Attempt to just reload the NSC configuration
+            if state['modified'] and state['can_reload']:
+                self.nsc.configuration.reload()
+                state = self.nsc.configuration.status()
+
+            # Changes may still now require us to restart the nsc service
+            # to apply
+            if state['modified']:
+                status = self.nsc.service.status()['status_text']
+                if status == 'RUNNING':
+                    self.nsc.service.stop()
+                self.nsc.configuration.apply()
+                if status == 'RUNNING':
+                    self.nsc.service.start()
+                state = self.nsc.configuration.status()
 
         if state['modified']:
             raise RuntimeError('Failed to apply pending changes')
