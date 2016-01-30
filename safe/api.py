@@ -9,11 +9,14 @@ import re
 import json
 import keyword
 import requests
+import logging
 from .url import url_builder, unpack_rest_response
 from .parser import parse
 
 
 __all__ = ['api']
+
+logger = logging.getLogger('safepy2')
 
 
 def make_typename(name):
@@ -124,13 +127,16 @@ class API(object):
 
     def commit(self):
         if 'smartapply' in self.nsc.configuration.api.methods:
+            logger.info('Applying configuration')
             self.nsc.configuration.smartapply()
             state = self.nsc.configuration.status()
         else:
+            logger.info('Attempting to apply configuration...')
             state = self.nsc.configuration.status()
 
             # Attempt to just reload the NSC configuration
             if state['modified'] and state['can_reload']:
+                logger.info('Trying reload...')
                 self.nsc.configuration.reload()
                 state = self.nsc.configuration.status()
 
@@ -139,7 +145,9 @@ class API(object):
             if state['modified']:
                 status = self.nsc.service.status()['status_text']
                 if status == 'RUNNING':
+                    logger.info('Suspending NSC')
                     self.nsc.service.stop()
+                logger.info('Trying apply...')
                 self.nsc.configuration.apply()
                 if status == 'RUNNING':
                     self.nsc.service.start()
@@ -359,6 +367,7 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
 
     api = api_wrapper(session, builder)
     if not specfile:
+        logger.info('Retrieving specification from NSC')
         r = session.get(builder.url(None, section='doc'))
         spec = unpack_rest_response(r).content
     else:
