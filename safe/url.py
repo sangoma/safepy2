@@ -20,7 +20,7 @@ import json
 import itertools
 import requests
 from six.moves.urllib.parse import urljoin
-from .exceptions import APIError, raise_from_json
+from .library import APIError, raise_from_json
 
 
 class APIResponse(object):

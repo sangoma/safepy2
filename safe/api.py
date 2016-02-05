@@ -10,7 +10,9 @@ import json
 import keyword
 import requests
 import logging
+import six
 from .url import url_builder, unpack_rest_response
+from .library import UnappliedConfig, Status
 from .parser import parse
 from .utils import deprecated
 
@@ -119,12 +121,34 @@ def api_wrapper(session, builder):
     return APIWrapper(None, version, session, builder)
 
 
+def parse_messages(status):
+    messages = []
+
+    # NSC 2.2 and newer splits the pending changes into three
+    # different sections, depending on the type of the configuration
+    # and the running state of NSC... because.
+    for section in ('reload', 'restart', 'apply'):
+        pending = status.get(section)
+        if pending:
+            messages.extend(Status.fromjson(item) for item in pending['items'])
+
+    # NSC 2.1 compatability
+    pending = status.get('reloadable')
+    if pending:
+        messages.extend(Status(k, v['configuration']) for k, v in six.iteritems(pending))
+
+    return messages
+
+
 class API(object):
     def __init__(self, api):
         self.api = api
 
     def config(self):
         return self.api.get_config().content
+
+    def changelog(self):
+        return parse_messages(self.nsc.configuration.status())
 
     def commit(self):
         if 'smartapply' in self.nsc.configuration.api.methods:
@@ -154,8 +178,9 @@ class API(object):
                     self.nsc.service.start()
                 state = self.nsc.configuration.status()
 
+        state = self.nsc.configuration.status()
         if state['modified']:
-            raise RuntimeError('Failed to apply pending changes')
+            raise UnappliedConfig(parse_messages(state))
 
 
 class APICollection(object):

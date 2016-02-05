@@ -9,34 +9,8 @@ import six
 import requests
 
 
-def flatten_error(error, parent=''):
-    for path, value in six.iteritems(error):
-        fullpath = '/'.join((parent, path)) if parent else path
-        if isinstance(value, dict):
-            for message in flatten_error(value, fullpath):
-                yield message
-        else:
-            yield ': '.join((fullpath, value or 'unknown error'))
-
-
-def flatten_reason(reasons):
-    for reason in reasons:
-        yield reason['description']
-
-
 class APIError(requests.HTTPError):
     pass
-
-
-class Reason(object):
-    def __init__(self, reason):
-        self.name = reason.get('obj_name')
-        self.obj = reason['obj_type']
-        self.description = reason['description']
-        self.module = reason['module']
-
-    def __str__(self):
-        return self.description
 
 
 class CommitFailed(APIError):
@@ -51,6 +25,58 @@ class CommitFailed(APIError):
     def __str__(self):
         reasons = (str(reason) for reason in self.reasons)
         return u'Apply changes failed: {}'.format('\n'.join(reasons))
+
+
+class UnappliedConfig(RuntimeError):
+    def __init__(self, messages):
+        self.messages = messages
+
+    def __str__(self):
+        messages = (str(message) for message in self.messages)
+        return u'Failed to apply all changes: {}'.format('\n'.join(messages))
+
+
+class Reason(object):
+    def __init__(self, reason):
+        self.name = reason.get('obj_name')
+        self.obj = reason['obj_type']
+        self.description = reason['description']
+        self.module = reason['module']
+
+    def __str__(self):
+        return self.description
+
+
+class Status(object):
+    def __init__(self, module, status, description=None):
+        self.status = status
+        self.module = module
+        self.description = description or module
+
+    @classmethod
+    def fromjson(cls, item):
+        return cls(item['module'], item['status'], item['description'])
+
+    def __str__(self):
+        return ' '.join((self.status, self.description))
+
+    def __repr__(self):
+        return '<Status({})>'.format(self)
+
+
+def flatten_error(error, parent=''):
+    for path, value in six.iteritems(error):
+        fullpath = '/'.join((parent, path)) if parent else path
+        if isinstance(value, dict):
+            for message in flatten_error(value, fullpath):
+                yield message
+        else:
+            yield ': '.join((fullpath, value or 'unknown error'))
+
+
+def flatten_reason(reasons):
+    for reason in reasons:
+        yield reason['description']
 
 
 def raise_from_json(r):
