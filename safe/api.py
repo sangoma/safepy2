@@ -12,6 +12,7 @@ import requests
 import logging
 from .url import url_builder, unpack_rest_response
 from .parser import parse
+from .utils import deprecated
 
 
 __all__ = ['api']
@@ -180,7 +181,7 @@ class APICollection(object):
     def keys(self):
         return self.api.get('list').data
 
-    def search(self, filter_expr):
+    def find(self, filter_expr):
         if not filter_expr:
             keys = self.api.get('list').data
         elif self.api.version >= (2, 1, 13):
@@ -190,6 +191,8 @@ class APICollection(object):
             raise NotImplementedError("No REST support for searching on 2.1")
 
         return iter(self[key] for key in keys)
+
+    search = deprecated('Method renamed to find')(find)
 
     def __getitem__(self, key):
         return self.api.get_child(key)
