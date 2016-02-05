@@ -27,7 +27,7 @@ class CommitFailed(APIError):
         return u'Apply changes failed: {}'.format('\n'.join(reasons))
 
 
-class UnappliedConfig(RuntimeError):
+class CommitIncomplete(RuntimeError):
     def __init__(self, messages):
         self.messages = messages
 

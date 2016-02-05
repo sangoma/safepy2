@@ -12,7 +12,7 @@ import requests
 import logging
 import six
 from .url import url_builder, unpack_rest_response
-from .library import UnappliedConfig, Status
+from .library import CommitIncomplete, Status
 from .parser import parse
 from .utils import deprecated
 
@@ -135,7 +135,8 @@ def parse_messages(status):
     # NSC 2.1 compatability
     pending = status.get('reloadable')
     if pending:
-        messages.extend(Status(k, v['configuration']) for k, v in six.iteritems(pending))
+        messages.extend(Status(k, v['configuration'])
+                        for k, v in six.iteritems(pending))
 
     return messages
 
@@ -180,7 +181,7 @@ class API(object):
 
         state = self.nsc.configuration.status()
         if state['modified']:
-            raise UnappliedConfig(parse_messages(state))
+            raise CommitIncomplete(parse_messages(state))
 
 
 class APICollection(object):
