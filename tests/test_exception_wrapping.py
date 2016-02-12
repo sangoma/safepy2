@@ -9,6 +9,32 @@ class MockResponse(object):
         return self.data
 
 
+def test_raw_exception():
+    error_message = 'Forbidden'
+
+    response = MockResponse(error_message)
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == error_message
+
+
+def test_unwrapped_exception():
+    error_message = 'Invalid API key'
+
+    response = MockResponse({'status': False, 'error': error_message})
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == error_message
+
+
+def test_unwrapped_multiline_exception():
+    error_message = ['Line 1',
+                     'Line 2',
+                     'Line 3']
+
+    response = MockResponse({'status': False, 'error': error_message})
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == '\n'.join(error_message)
+
+
 def test_basic_exception():
     error_message = 'Example error'
     response = MockResponse({
@@ -20,6 +46,77 @@ def test_basic_exception():
 
     exception = safe.library.raise_from_json(response)
     assert str(exception) == error_message
+
+
+def test_basic_exception_with_name():
+    error_message = 'Internal is running'
+    response = MockResponse({
+        'status': False,
+        'type': 'profile',
+        'method': 'delete',
+        'module': 'sip',
+        'error': error_message,
+        'name': 'Internal',
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == 'Error for Internal: ' + error_message
+
+
+def test_configuration_conflict_exception():
+    response = MockResponse({
+        'status': False,
+        'type': 'profile',
+        'method': 'create',
+        'module': 'sip',
+        'error': 'Conflict',
+        'name': 'Internal',
+        'data': ''
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == "The key 'Internal' conflicts with the system"
+
+
+def test_configuration_in_use_exception():
+    response = MockResponse({
+        'status': False,
+        'type': 'domain',
+        'method': 'delete',
+        'module': 'directory',
+        'error': {
+            'msg': 'upreg_domain is use by',
+            'obj': [{
+                'name': 'sip',
+                'obj_name': 'external_upreg',
+                'obj_type': 'profile'
+            }],
+        },
+        'name': 'upreg_domain'
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == "Error for upreg_domain: "\
+        "In use by profile 'external_upreg'"
+
+
+def test_configuration_validation_exception():
+    gatewaydev_error = 'The Default Gateway Interface field is required.'
+    hostname_error = 'The Host Name field must contain a valid domain.'
+    response = MockResponse({
+        'status': False,
+        'type': 'configuration',
+        'method': 'update',
+        'module': 'network',
+        'error': {
+            'global/gatewaydev': gatewaydev_error,
+            'global/hostname': hostname_error
+        }
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert 'global/hostname: ' + hostname_error in str(exception)
+    assert 'global/gatewaydev: ' + gatewaydev_error in str(exception)
 
 
 def test_commit_failed_exception():

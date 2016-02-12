@@ -119,7 +119,7 @@ def raise_from_json(r):
 
     name = data.get('name')
     if message == 'Conflict':
-        api_error_message = "The key '{}' is in conflicts with the "\
+        api_error_message = "The key '{}' conflicts with the "\
                             "system".format(name)
     elif name:
         api_error_message = 'Error for {}: {}'.format(name, message)
