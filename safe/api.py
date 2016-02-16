@@ -179,7 +179,6 @@ class API(object):
                     self.nsc.service.start()
                 state = self.nsc.configuration.status()
 
-        state = self.nsc.configuration.status()
         if state['modified']:
             raise CommitIncomplete(parse_messages(state))
 

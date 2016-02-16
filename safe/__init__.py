@@ -6,5 +6,5 @@
 # Simon Gomizelj <sgomizelj@sangoma.com>
 
 from .api import api
-from .library import APIError, CommitFailed
+from .library import APIError, CommitFailed, CommitIncomplete
 from .parser import parse_from_url
