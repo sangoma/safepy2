@@ -85,7 +85,7 @@ def test_configuration_in_use_exception():
         'method': 'delete',
         'module': 'directory',
         'error': {
-            'msg': 'upreg_domain is use by',
+            'message': 'upreg_domain is use by',
             'obj': [{
                 'name': 'sip',
                 'obj_name': 'external_upreg',

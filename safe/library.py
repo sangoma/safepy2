@@ -99,22 +99,23 @@ def raise_from_json(r):
         return APIError(data, response=r)
 
     error = data.get('error')
+    message = None
     if isinstance(error, list):
         message = '\n'.join(error)
     elif isinstance(error, dict):
         reasons = error.get('reason')
-        message = error.get('message')
         if reasons:
             return CommitFailed.fromjson(reasons, response=r)
-        elif not message:
-            message = error.get('msg')
-            if not message:
-                message = '\n'.join(flatten_error(error))
-            else:
-                obj = error['obj'][0]
-                message = "In use by {} '{}'".format(obj['obj_type'],
-                                                     obj['obj_name'])
-    else:
+
+        obj = error.get('obj')
+        message = error.get('message')
+        if not message:
+            message = '\n'.join(flatten_error(error))
+        elif obj:
+            message = "In use by {} '{}'".format(obj[0]['obj_type'],
+                                                 obj[0]['obj_name'])
+
+    if not message:
         message = str(error)
 
     name = data.get('name')
