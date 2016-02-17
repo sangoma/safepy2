@@ -55,7 +55,7 @@ def test_basic_exception_with_name():
         'type': 'profile',
         'method': 'delete',
         'module': 'sip',
-        'error': error_message,
+        'error': {'message': error_message},
         'name': 'Internal',
     })
 
@@ -69,9 +69,8 @@ def test_configuration_conflict_exception():
         'type': 'profile',
         'method': 'create',
         'module': 'sip',
-        'error': 'Conflict',
+        'error': {'message': 'Conflict'},
         'name': 'Internal',
-        'data': ''
     })
 
     exception = safe.library.raise_from_json(response)
