@@ -280,11 +280,7 @@ class APIModule(object):
         return key in self.api.interface
 
     def __repr__(self):
-        try:
-            data = self.retrieve()
-            return '{}({!r})'.format(self.__class__.__name__, data)
-        except AttributeError:
-            return '{}()'.format(self.__class__.__name__)
+        return '{}()'.format(self.__class__.__name__)
 
 
 def compile_methods(ast, api, reserved=None):
@@ -369,7 +365,7 @@ def compile_objects(ast, api):
         new_builder = api.builder.join(node.tag)
         new_api = APIWrapper(node, api.version, api.session, new_builder)
 
-        if node.singleton:
+        if node.iscollection:
             yield typename, compile_module(node, new_api)
         else:
             yield typename, compile_collection(node, new_api)

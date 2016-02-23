@@ -34,13 +34,10 @@ class Node(dict):
 
 class ObjectNode(Node):
     @property
-    def singleton(self):
-        # Because modules are objects except for when they're not.
-        # Modules are objects that are always singletons but, unlike
-        # other objects, don't report it.
+    def iscollection(self):
         if len(self.path) == 1:
             return True
-        return self.get('singleton', False)
+        return not self.get('has_child', False)
 
     @property
     def isobject(self):
