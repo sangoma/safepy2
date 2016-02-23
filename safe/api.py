@@ -99,14 +99,15 @@ class APIWrapper(object):
         safe_url = self.builder.url('upload')
         return unpack_rest_response(self.session.post(safe_url, files=files))
 
-    def get(self, method, path=None):
+    def get(self, method, path=None, params=None):
         safe_url = self.builder.url(method, path=path)
-        return unpack_rest_response(self.session.get(safe_url))
+        return unpack_rest_response(self.session.get(safe_url, params=params))
 
-    def post(self, method, path=None, data=None):
+    def post(self, method, path=None, data=None, params=None):
         postdata = json.dumps(data) if data else None
         safe_url = self.builder.url(method, path=path)
         data = self.session.post(safe_url, data=postdata,
+                                 params=params,
                                  headers={'Content-Type': 'application/json'})
         return unpack_rest_response(data)
 
@@ -302,16 +303,17 @@ def compile_methods(ast, api, reserved=None):
         return download
 
     def make_get_method(api, nodeid):
-        def get(self, *args):
-            r = api.get(nodeid, path=args)
+        def get(self, *args, **kwargs):
+            r = api.get(nodeid, path=args, params=kwargs)
             assert r.mimetype == 'application/json'
             return r.data
         return get
 
     def make_post_method(api, nodeid):
-        def post(self, *args):
+        def post(self, *args, **kwargs):
             if args and isinstance(args[-1], dict):
-                r = api.post(nodeid, path=args[:-1], data=args[-1])
+                r = api.post(nodeid, path=args[:-1], data=args[-1],
+                             params=kwargs)
             else:
                 r = api.post(nodeid, path=args)
             assert r.mimetype == 'application/json'
