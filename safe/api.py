@@ -10,9 +10,8 @@ import json
 import keyword
 import requests
 import logging
-import six
 from .url import url_builder, unpack_rest_response
-from .library import CommitIncomplete, Status, parse_messages
+from .library import CommitIncomplete, parse_messages
 from .parser import parse
 from .utils import deprecated
 
