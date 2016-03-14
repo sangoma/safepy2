@@ -83,8 +83,9 @@ class APIWrapper(object):
 
     def get_child(self, key):
         new_builder = self.builder.join(key)
-        new_api = APIWrapper(self.node, self.version, self.session, new_builder)
-        return compile_child(self.node, new_api, key)
+        new_api = APIWrapper(self.node, self.version,
+                             self.session, new_builder)
+        return compile_object(self.node, new_api)(key)
 
     def get_config(self):
         safe_url = self.builder.url(None, section='config')
@@ -143,9 +144,6 @@ def parse_messages(status):
 
 
 class API(object):
-    def __init__(self, api):
-        self.api = api
-
     def config(self):
         return self.api.get_config().content
 
@@ -185,9 +183,6 @@ class API(object):
 
 
 class APICollection(object):
-    def __init__(self, api):
-        self.api = api
-
     def create(self, key, data):
         if 'display-name' in self.api.interface and 'display-name' not in data:
             data['display-name'] = key
@@ -240,9 +235,9 @@ class APICollection(object):
 
 
 class APIObject(object):
-    def __init__(self, api, name):
-        self.api = api
-        self.ident = name
+    def __init__(self, name=None):
+        if name:
+            self.ident = name
 
     def retrieve(self):
         return self.api.get('retrieve').data
@@ -264,9 +259,6 @@ class APIObject(object):
 
 
 class APIModule(object):
-    def __init__(self, api):
-        self.api = api
-
     def __getitem__(self, key):
         return self.retrieve()[key]
 
@@ -287,35 +279,35 @@ class APIModule(object):
             return '{}()'.format(self.__class__.__name__)
 
 
-def compile_methods(ast, api, reserved=None):
+def add_methods(ast, reserved=None):
     '''Compile all the methods specified in the json 'methods' section.
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
 
-    def make_upload_method(api, nodeid):
+    def make_upload_method(nodeid):
         def upload(self, filename, payload=None):
-            return api.upload(filename, payload=payload).data
+            return self.api.upload(filename, payload=payload).data
         return upload
 
-    def make_download_method(api, nodeid):
+    def make_download_method(nodeid):
         def download(self, *args):
-            return api.get(nodeid, path=args).content
+            return self.api.get(nodeid, path=args).content
         return download
 
-    def make_get_method(api, nodeid):
+    def make_get_method(nodeid):
         def get(self, *args, **kwargs):
-            r = api.get(nodeid, path=args, params=kwargs)
+            r = self.api.get(nodeid, path=args, params=kwargs)
             assert r.mimetype == 'application/json'
             return r.data
         return get
 
-    def make_post_method(api, nodeid):
+    def make_post_method(nodeid):
         def post(self, *args, **kwargs):
             if args and isinstance(args[-1], dict):
-                r = api.post(nodeid, path=args[:-1], data=args[-1],
-                             params=kwargs)
+                r = self.api.post(nodeid, path=args[:-1], data=args[-1],
+                                  params=kwargs)
             else:
-                r = api.post(nodeid, path=args)
+                r = self.api.post(nodeid, path=args)
             assert r.mimetype == 'application/json'
             return r.data
         return post
@@ -325,54 +317,54 @@ def compile_methods(ast, api, reserved=None):
             continue
 
         if node.tag == 'upload':
-            method = make_upload_method(api, node.tag)
+            method = make_upload_method(node.tag)
         elif node.tag == 'download':
-            method = make_download_method(api, node.tag)
+            method = make_download_method(node.tag)
         elif node['request'] == 'GET':
-            method = make_get_method(api, node.tag)
+            method = make_get_method(node.tag)
         elif node['request'] == 'POST':
-            method = make_post_method(api, node.tag)
+            method = make_post_method(node.tag)
 
         method.__name__ = make_typename(node.tag)
         method.__doc__ = make_docstring(node.get('description', None))
         yield method.__name__, method
 
 
-def object_template(node):
+def build_type(node, api, base):
     typename = make_typename(node.get('name', None))
-    return typename, {'__doc__': make_docstring(node.get('description', None))}
+    docstring = make_docstring(node.get('description'))
+
+    namespace = {'__doc__': docstring, 'api': api}
+    namespace.update(add_children(node.objs, api))
+    namespace.update(add_methods(node.methods, base.__dict__))
+    return type(typename, (base,), namespace)
 
 
-def compile_child(node, api, name):
-    typename, namespace = object_template(node)
-    namespace.update(compile_objects(node.objs, api))
-    namespace.update(compile_methods(node.methods, api, APIObject.__dict__))
-    return type(typename, (APIObject,), namespace)(api, name)
+def compile_object(node, api):
+    return build_type(node, api, APIObject)
 
 
 def compile_module(node, api):
-    typename, namespace = object_template(node)
-    namespace.update(compile_objects(node.objs, api))
-    namespace.update(compile_methods(node.methods, api))
-    return type(typename, (APIModule,), namespace)(api)
+    return build_type(node, api, APIModule)
 
 
 def compile_collection(node, api):
-    typename, namespace = object_template(node)
-    namespace.update(compile_methods(node.methods, api, APICollection.__dict__))
-    return type(typename, (APICollection,), namespace)(api)
+    return build_type(node, api, APICollection)
 
 
-def compile_objects(ast, api):
+def add_children(ast, api):
     for node in ast:
         typename = make_typename(node.tag)
         new_builder = api.builder.join(node.tag)
         new_api = APIWrapper(node, api.version, api.session, new_builder)
 
-        if node.singleton:
-            yield typename, compile_module(node, new_api)
-        else:
-            yield typename, compile_collection(node, new_api)
+        node_type = node.node_type
+        if node_type == 'collection':
+            yield typename, compile_collection(node, new_api)()
+        elif node_type == 'object':
+            yield typename, compile_object(node, new_api)()
+        elif node_type == 'module':
+            yield typename, compile_module(node, new_api)()
 
 
 def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
@@ -404,6 +396,6 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
         with open(specfile) as fp:
             spec = json.load(fp)
 
-    namespace = dict(compile_objects(parse(spec), api))
+    namespace = dict(add_children(parse(spec), api))
     product_cls = type('API', (API,), namespace)
-    return product_cls(api)
+    return product_cls()

@@ -14,6 +14,15 @@ import six
 from .url import get_documentation
 
 
+def node_type(methods):
+    methods = set(methods)
+    if methods.issuperset(('retrieve', 'create', 'list', 'update', 'delete')):
+        return 'collection'
+    elif methods.issuperset(('retrieve', 'update')):
+        return 'object'
+    return 'module'
+
+
 class Node(dict):
     def __init__(self, tag, path, spec, objs=None, cls=None, methods=None):
         super(Node, self).__init__()
@@ -24,6 +33,10 @@ class Node(dict):
         self.methods = methods
         self.update(spec)
 
+    @property
+    def node_type(self):
+        return node_type(node.tag for node in self.methods)
+
     def __repr__(self):
         return '{}(tag={}, cls={}, methods={}, objs={}, {})'.format(
             self.__class__.__name__, self.tag,
@@ -33,19 +46,7 @@ class Node(dict):
 
 
 class ObjectNode(Node):
-    @property
-    def singleton(self):
-        # Because modules are objects except for when they're not.
-        # Modules are objects that are always singletons but, unlike
-        # other objects, don't report it.
-        if len(self.path) == 1:
-            return True
-        return self.get('singleton', False)
-
-    @property
-    def isobject(self):
-        method_names = set(node.tag for node in self.methods)
-        return method_names.issuperset(('update', 'retrieve'))
+    pass
 
 
 class MethodNode(Node):
