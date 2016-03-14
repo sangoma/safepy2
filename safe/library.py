@@ -128,3 +128,23 @@ def raise_from_json(r):
         api_error_message = message
 
     return APIError(api_error_message, response=r)
+
+
+def parse_messages(status):
+    messages = []
+
+    # NSC 2.2 and newer splits the pending changes into three
+    # different sections, depending on the type of the configuration
+    # and the running state of NSC... because.
+    for section in ('reload', 'restart', 'apply'):
+        pending = status.get(section)
+        if pending:
+            messages.extend(Status.fromjson(item) for item in pending['items'])
+
+    # NSC 2.1 compatability
+    pending = status.get('reloadable')
+    if pending:
+        messages.extend(Status(k, v['configuration'])
+                        for k, v in six.iteritems(pending))
+
+    return messages

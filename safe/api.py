@@ -12,7 +12,7 @@ import requests
 import logging
 import six
 from .url import url_builder, unpack_rest_response
-from .library import CommitIncomplete, Status
+from .library import CommitIncomplete, Status, parse_messages
 from .parser import parse
 from .utils import deprecated
 
@@ -121,26 +121,6 @@ def api_wrapper(session, builder):
                int(version_data['patch_version']))
 
     return APIWrapper(None, version, session, builder)
-
-
-def parse_messages(status):
-    messages = []
-
-    # NSC 2.2 and newer splits the pending changes into three
-    # different sections, depending on the type of the configuration
-    # and the running state of NSC... because.
-    for section in ('reload', 'restart', 'apply'):
-        pending = status.get(section)
-        if pending:
-            messages.extend(Status.fromjson(item) for item in pending['items'])
-
-    # NSC 2.1 compatability
-    pending = status.get('reloadable')
-    if pending:
-        messages.extend(Status(k, v['configuration'])
-                        for k, v in six.iteritems(pending))
-
-    return messages
 
 
 class API(object):
