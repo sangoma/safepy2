@@ -241,21 +241,11 @@ class APIModule(object):
     def __getitem__(self, key):
         return self.retrieve()[key]
 
-    def __setitem__(self, key, value):
-        try:
-            self.update({key: value})
-        except AttributeError:
-            raise TypeError('Module does not support updating')
-
     def __contains__(self, key):
         return key in self.api.interface
 
     def __repr__(self):
-        try:
-            data = self.retrieve()
-            return '{}({!r})'.format(self.__class__.__name__, data)
-        except AttributeError:
-            return '{}()'.format(self.__class__.__name__)
+        return '{}()'.format(self.__class__.__name__)
 
 
 def add_methods(ast, reserved=None):
