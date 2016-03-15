@@ -84,7 +84,7 @@ class APIWrapper(object):
         new_builder = self.builder.join(key)
         new_api = APIWrapper(self.node, self.version,
                              self.session, new_builder)
-        return compile_object(self.node, new_api)(key)
+        return build_type(self.node, new_api, APIObject)(key)
 
     def get_config(self):
         safe_url = self.builder.url(None, section='config')
@@ -218,51 +218,66 @@ class APIObject(object):
         if name:
             self.ident = name
 
-    def retrieve(self):
-        return self.api.get('retrieve').data
-
-    def update(self, data):
-        return self.api.post('update', data=data).data
-
-    def __contains__(self, key):
-        return key in self.api.interface
-
-    def __getitem__(self, key):
-        return self.retrieve()[key]
-
-    def __setitem__(self, key, value):
-        self.update({key: value})
-
-    def __repr__(self):
-        return '{}({!r})'.format(self.__class__.__name__, self.retrieve())
-
-
-class APIModule(object):
-    def __getitem__(self, key):
-        return self.retrieve()[key]
-
     def __contains__(self, key):
         return key in self.api.interface
 
     def __repr__(self):
-        return '{}()'.format(self.__class__.__name__)
+        try:
+            return '{}({!r})'.format(self.__class__.__name__, self.retrieve())
+        except AttributeError:
+            return '{}()'.format(self.__class__.__name__)
 
 
 def add_methods(ast, reserved=None):
     '''Compile all the methods specified in the json 'methods' section.
     Prefer specialized implementations of common and important rest
     functions, falling back to a generic implementation for others.'''
+    def method_builder(func):
+        def inner(node):
+            method = func(node.tag)
+            method.__name__ = make_typename(node.tag)
+            method.__doc__ = make_docstring(node.get('description', None))
+            return method
 
+        return inner
+
+    @method_builder
     def make_upload_method(nodeid):
         def upload(self, filename, payload=None):
             return self.api.upload(filename, payload=payload).data
         return upload
 
+    @method_builder
     def make_download_method(nodeid):
         def download(self, *args):
             return self.api.get(nodeid, path=args).content
         return download
 
+    @method_builder
+    def make_retrieve_method(nodeid):
+        def retrieve(self):
+            return self.api.get('retrieve').data
+        return retrieve
+
+    @method_builder
+    def make_getitem_method(nodeit):
+        def __getitem__(self, key):
+            return self.retrieve()[key]
+        return __getitem__
+
+    @method_builder
+    def make_update_method(nodeid):
+        def update(self, data):
+            return self.api.post('update', data=data).data
+        return update
+
+    @method_builder
+    def make_setitem_method(nodeid):
+        def __setitem__(self, key, value):
+            self.update({key: value})
+        return __setitem__
+
+    @method_builder
     def make_get_method(nodeid):
         def get(self, *args, **kwargs):
             r = self.api.get(nodeid, path=args, params=kwargs)
@@ -270,6 +285,7 @@ def add_methods(ast, reserved=None):
             return r.data
         return get
 
+    @method_builder
     def make_post_method(nodeid):
         def post(self, *args, **kwargs):
             if args and isinstance(args[-1], dict):
@@ -284,19 +300,20 @@ def add_methods(ast, reserved=None):
     for node in ast:
         if node.tag == 'list' or (reserved and node.tag in reserved):
             continue
-
-        if node.tag == 'upload':
-            method = make_upload_method(node.tag)
+        elif node.tag == 'retrieve':
+            yield node.tag, make_retrieve_method(node)
+            yield '__getitem__', make_getitem_method(node)
+        elif node.tag == 'update':
+            yield node.tag, make_update_method(node)
+            yield '__setitem__', make_setitem_method(node)
+        elif node.tag == 'upload':
+            yield node.tag, make_upload_method(node)
         elif node.tag == 'download':
-            method = make_download_method(node.tag)
+            yield node.tag, make_download_method(node)
         elif node['request'] == 'GET':
-            method = make_get_method(node.tag)
+            yield node.tag, make_get_method(node)
         elif node['request'] == 'POST':
-            method = make_post_method(node.tag)
-
-        method.__name__ = make_typename(node.tag)
-        method.__doc__ = make_docstring(node.get('description', None))
-        yield method.__name__, method
+            yield node.tag, make_post_method(node)
 
 
 def build_type(node, api, base):
@@ -309,31 +326,14 @@ def build_type(node, api, base):
     return type(typename, (base,), namespace)
 
 
-def compile_object(node, api):
-    return build_type(node, api, APIObject)
-
-
-def compile_module(node, api):
-    return build_type(node, api, APIModule)
-
-
-def compile_collection(node, api):
-    return build_type(node, api, APICollection)
-
-
 def add_children(ast, api):
     for node in ast:
-        typename = make_typename(node.tag)
         new_builder = api.builder.join(node.tag)
         new_api = APIWrapper(node, api.version, api.session, new_builder)
 
-        node_type = node.node_type
-        if node_type == 'collection':
-            yield typename, compile_collection(node, new_api)()
-        elif node_type == 'object':
-            yield typename, compile_object(node, new_api)()
-        elif node_type == 'module':
-            yield typename, compile_module(node, new_api)()
+        typename = make_typename(node.tag)
+        base = APICollection if node.collection else APIObject
+        yield typename, build_type(node, new_api, base)()
 
 
 def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):

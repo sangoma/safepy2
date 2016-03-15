@@ -14,15 +14,6 @@ import six
 from .url import get_documentation
 
 
-def node_type(methods):
-    methods = set(methods)
-    if methods.issuperset(('retrieve', 'create', 'list', 'update', 'delete')):
-        return 'collection'
-    elif methods.issuperset(('retrieve', 'update')):
-        return 'object'
-    return 'module'
-
-
 class Node(dict):
     def __init__(self, tag, path, spec, objs=None, cls=None, methods=None):
         super(Node, self).__init__()
@@ -34,8 +25,8 @@ class Node(dict):
         self.update(spec)
 
     @property
-    def node_type(self):
-        return node_type(node.tag for node in self.methods)
+    def collection(self):
+        return len(self.path) > 1 and not self.get('singleton', False)
 
     def __repr__(self):
         return '{}(tag={}, cls={}, methods={}, objs={}, {})'.format(
