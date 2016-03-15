@@ -237,7 +237,7 @@ def add_methods(ast, reserved=None):
             method = func(node.tag)
             method.__name__ = make_typename(node.tag)
             method.__doc__ = make_docstring(node.get('description', None))
-            return method
+            return node.tag, method
 
         return inner
 
@@ -260,22 +260,20 @@ def add_methods(ast, reserved=None):
         return retrieve
 
     @method_builder
-    def make_getitem_method(nodeit):
-        def __getitem__(self, key):
-            return self.retrieve()[key]
-        return __getitem__
-
-    @method_builder
     def make_update_method(nodeid):
         def update(self, data):
             return self.api.post('update', data=data).data
         return update
 
-    @method_builder
+    def make_getitem_method(nodeit):
+        def __getitem__(self, key):
+            return self.retrieve()[key]
+        return '__getitem__', __getitem__
+
     def make_setitem_method(nodeid):
         def __setitem__(self, key, value):
             self.update({key: value})
-        return __setitem__
+        return '__setitem__', __setitem__
 
     @method_builder
     def make_get_method(nodeid):
@@ -301,19 +299,19 @@ def add_methods(ast, reserved=None):
         if node.tag == 'list' or (reserved and node.tag in reserved):
             continue
         elif node.tag == 'retrieve':
-            yield node.tag, make_retrieve_method(node)
-            yield '__getitem__', make_getitem_method(node)
+            yield make_retrieve_method(node)
+            yield make_getitem_method(node)
         elif node.tag == 'update':
-            yield node.tag, make_update_method(node)
-            yield '__setitem__', make_setitem_method(node)
+            yield make_update_method(node)
+            yield make_setitem_method(node)
         elif node.tag == 'upload':
-            yield node.tag, make_upload_method(node)
+            yield make_upload_method(node)
         elif node.tag == 'download':
-            yield node.tag, make_download_method(node)
+            yield make_download_method(node)
         elif node['request'] == 'GET':
-            yield node.tag, make_get_method(node)
+            yield make_get_method(node)
         elif node['request'] == 'POST':
-            yield node.tag, make_post_method(node)
+            yield make_post_method(node)
 
 
 def build_type(node, api, base):
