@@ -160,6 +160,10 @@ class API(object):
         if state['modified']:
             raise CommitIncomplete(parse_messages(state))
 
+    @property
+    def session(self):
+        return self.api.session
+
 
 class APICollection(object):
     def create(self, key, data):
@@ -363,6 +367,6 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
         with open(specfile) as fp:
             spec = json.load(fp)
 
-    namespace = dict(add_children(parse(spec), api), session=session)
+    namespace = dict(add_children(parse(spec), api), api=api)
     product_cls = type('API', (API,), namespace)
     return product_cls()
