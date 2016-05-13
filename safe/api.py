@@ -198,7 +198,14 @@ class APICollection(object):
 
     search = deprecated('Method renamed to find')(find)
 
+    def get(self, key, default=None):
+        if key not in self.keys():
+            return default
+        return self.api.get_child(key)
+
     def __getitem__(self, key):
+        if key not in self.keys():
+            raise KeyError(key)
         return self.api.get_child(key)
 
     def __contains__(self, key):
