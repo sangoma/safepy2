@@ -146,3 +146,35 @@ def test_commit_failed_exception():
     assert reason.obj == 'configuration'
     assert reason.module == 'network'
     assert reason.description == error_message
+
+
+def test_commit_checklist_exception():
+    error_message = 'SIP Profile  Not defined'
+    response = MockResponse({
+        'error': {
+            'message': 'Apply configuration failed.',
+            'status': {
+                'description': 'Configuration not completed.',
+                'checklist': {
+                    'description': 'Configuration not completed.',
+                    'status_text': 'error',
+                    'items': [{
+                        'url': '/SAFe/fs_sip_profile_config',
+                        'obj_type': 'profile',
+                        'description': error_message,
+                        'module': 'sip'
+                    }]
+                }
+            }
+        }
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert isinstance(exception, safe.CommitFailed)
+    assert str(exception) == 'Apply changes failed: ' + error_message
+    assert len(exception.reasons) == 1
+
+    reason = exception.reasons[0]
+    assert reason.obj == 'profile'
+    assert reason.module == 'sip'
+    assert reason.description == error_message
