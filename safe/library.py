@@ -13,14 +13,22 @@ class APIError(requests.HTTPError):
     pass
 
 
+class Reason(object):
+    def __init__(self, reason):
+        self.name = reason.get('obj_name')
+        self.obj = reason['obj_type']
+        self.description = reason['description']
+        self.module = reason['module']
+        self.url = reason['url']
+
+    def __str__(self):
+        return self.description
+
+
 class CommitFailed(APIError):
     def __init__(self, reasons, response=None):
         super(CommitFailed, self).__init__('Commit failed', response=response)
         self.reasons = reasons
-
-    @classmethod
-    def fromjson(cls, json, response=None):
-        return cls([Reason(reason) for reason in json], response=response)
 
     def __str__(self):
         reasons = (str(reason) for reason in self.reasons)
@@ -34,17 +42,6 @@ class CommitIncomplete(RuntimeError):
     def __str__(self):
         messages = (str(message) for message in self.messages)
         return u'Failed to apply all changes: {}'.format('\n'.join(messages))
-
-
-class Reason(object):
-    def __init__(self, reason):
-        self.name = reason.get('obj_name')
-        self.obj = reason['obj_type']
-        self.description = reason['description']
-        self.module = reason['module']
-
-    def __str__(self):
-        return self.description
 
 
 class Status(object):
@@ -105,7 +102,15 @@ def raise_from_json(r):
     elif isinstance(error, dict):
         reasons = error.get('reason')
         if reasons:
-            return CommitFailed.fromjson(reasons, response=r)
+            explanation = [Reason(reason) for reason in reasons]
+            return CommitFailed(explanation, response=r)
+
+        status = error.get('status')
+        if status:
+            checklist = status.get('checklist')
+            if checklist:
+                explanation = [Reason(reason) for reason in checklist['items']]
+                return CommitFailed(explanation, response=r)
 
         obj = error.get('obj')
         message = error.get('message')
