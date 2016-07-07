@@ -345,7 +345,8 @@ def add_children(ast, api):
         yield typename, build_type(node, new_api, base)()
 
 
-def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
+def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None,
+        adapter=None):
     '''Connects to a remote device, download the json specification
     describing the supported rest calls and dynamically compile a new
     object to wrap the rest.
@@ -364,6 +365,8 @@ def api(host, port=80, scheme='http', token=None, specfile=None, timeout=None):
         session.timeout = timeout
     if token:
         session.headers['X-API-KEY'] = token
+    if adapter:
+        session.mount('{}://{}:{}'.format(scheme, host, port), adapter)
 
     api = api_wrapper(session, builder)
     if not specfile:
