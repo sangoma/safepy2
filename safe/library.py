@@ -19,7 +19,7 @@ class Reason(object):
         self.obj = reason['obj_type']
         self.description = reason['description']
         self.module = reason['module']
-        self.url = reason['url']
+        self.url = reason.get('url')
 
     def __str__(self):
         return self.description
