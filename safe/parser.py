@@ -14,6 +14,9 @@ import six
 from .url import get_documentation
 
 
+BROKEN_PATHS = {(u'monitor', u'event')}
+
+
 class Node(dict):
     def __init__(self, tag, path, spec, objs=None, cls=None, methods=None):
         super(Node, self).__init__()
@@ -26,6 +29,8 @@ class Node(dict):
 
     @property
     def collection(self):
+        if self.path in BROKEN_PATHS:
+            return False
         return len(self.path) > 1 and not self.get('singleton', False)
 
     def __repr__(self):
