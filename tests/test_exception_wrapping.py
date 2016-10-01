@@ -118,6 +118,23 @@ def test_configuration_validation_exception():
     assert 'global/gatewaydev: ' + gatewaydev_error in str(exception)
 
 
+def test_sngms_fwupdate_exception():
+    error_message = 'NetBorder Session Controller is running.'
+    response = MockResponse({
+        'status': False,
+        'type': 'sngdsp0',
+        'method': 'fwupdate',
+        'module': 'sngms',
+        'error': {
+            'message': 'Cannot update module firmware.',
+            'reason': error_message
+        }
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == error_message
+
+
 def test_commit_failed_exception():
     error_message = 'Default ipv4 gateway is not on eth0 subnet'
     response = MockResponse({
