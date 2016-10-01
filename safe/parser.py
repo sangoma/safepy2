@@ -14,7 +14,7 @@ import six
 from .url import get_documentation
 
 
-BROKEN_PATHS = {(u'monitor', u'event')}
+BROKEN_PATHS = set([(u'monitor', u'event')])
 
 
 class Node(dict):
