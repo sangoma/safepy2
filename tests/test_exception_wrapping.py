@@ -136,19 +136,20 @@ def test_sngms_fwupdate_exception():
 
 
 def test_network_apply_exception():
-    error_message = 'Apply changes failed: Cannot get DHCP IPv4 on eth1.\nCannot get DHCP IPv6 on eth1.'
+    reasons = ['Cannot get DHCP IPv4 on eth1.',
+               'Cannot get DHCP IPv6 on eth1.']
     response = MockResponse({
         'status': False,
         'method': 'apply',
         'module': 'network',
         'error': {
             'message': ['Apply Network changes failed.'],
-            'reason': ['Cannot get DHCP IPv4 on eth1.', 'Cannot get DHCP IPv6 on eth1.']
+            'reason': reasons
         }
     })
 
     exception = safe.library.raise_from_json(response)
-    assert str(exception) == error_message
+    assert str(exception) == 'Apply changes failed: ' + '\n'.join(reasons)
 
 
 def test_commit_failed_exception():
