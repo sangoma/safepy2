@@ -105,7 +105,10 @@ def raise_from_json(r):
             # Just a regular failure
             return APIError(reasons, response=r)
         elif reasons:
-            explanation = [Reason(reason) for reason in reasons]
+            explanation = [
+                reason if isinstance(reason, six.string_types) else Reason(reason)
+                     for reason in reasons
+            ]
             return CommitFailed(explanation, response=r)
 
         status = error.get('status')

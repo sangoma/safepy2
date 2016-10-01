@@ -135,6 +135,22 @@ def test_sngms_fwupdate_exception():
     assert str(exception) == error_message
 
 
+def test_network_apply_exception():
+    error_message = 'Apply changes failed: Cannot get DHCP IPv4 on eth1.\nCannot get DHCP IPv6 on eth1.'
+    response = MockResponse({
+        'status': False,
+        'method': 'apply',
+        'module': 'network',
+        'error': {
+            'message': ['Apply Network changes failed.'],
+            'reason': ['Cannot get DHCP IPv4 on eth1.', 'Cannot get DHCP IPv6 on eth1.']
+        }
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == error_message
+
+
 def test_commit_failed_exception():
     error_message = 'Default ipv4 gateway is not on eth0 subnet'
     response = MockResponse({
