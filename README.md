@@ -1,5 +1,10 @@
 # safepy2
 
+<a href="https://travis-ci.org/sangoma/safepy2">
+  <img alt="Travis CI Status"
+       src="https://travis-ci.org/sangoma/safepy2.png"/>
+</a>
+
 Python library that auto-generates generates a wrapper around NSC's
 REST API. The NSC webui provides a specification file describing its
 exposed functionality and this library reads it, parses it, and
