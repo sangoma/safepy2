@@ -52,7 +52,7 @@ and `sip-port`. The `sip-ip` field has to be the name of the ip
 object, so first we have to find it:
 
 ~~~
->>> sip_ip = api.network.ip.list({'address': '198.51.100.5'})
+>>> sip_ip = api.network.ip.search({'address': '198.51.100.5'})
 >>> sip_ip
 [u'ip_3']
 ~~~
@@ -71,9 +71,11 @@ Remember to apply changes (see below) when done.
 Listing profiles is simple:
 
 ~~~python
->>> api.sip.profile.list()
+>>> list(api.sip.profile)
 [u'example-profile']
 ~~~
+
+Iteration is also supported.
 
 ### Accessing attributes of a profile
 
