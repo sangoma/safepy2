@@ -1,9 +1,6 @@
 # safepy2
 
-<a href="https://travis-ci.org/sangoma/safepy2">
-  <img alt="Travis CI Status"
-       src="https://travis-ci.org/sangoma/safepy2.png"/>
-</a>
+[![Build Status](https://travis-ci.org/sangoma/safepy2.svg?branch=master)](https://travis-ci.org/sangoma/safepy2)
 
 Python library that auto-generates generates a wrapper around NSC's
 REST API. The NSC webui provides a specification file describing its
@@ -37,11 +34,12 @@ should be fairly well documented internally.
 
 ~~~python
 >>> import safe
->>> api = safe.api('example-profile')
+>>> api = safe.api('10.10.9.100', token='A3553E08FB0DCCB80E4CE951666E16DE')
 ~~~
 
-The resulting `api` object gives us a window into the product of
-interest.
+`token` is usually generated from the product's web interface under the
+ReST API section. The resulting `api` object gives us a window into the
+product of interest.
 
 ## Examples
 
