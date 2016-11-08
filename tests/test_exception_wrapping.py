@@ -163,12 +163,17 @@ def test_apply_dict_list_exception():
         'type': 'archive',
         'method': 'restore',
         'module': 'nsc',
-        'error': [
-            { 'module': 'Configuration Manager', 'obj_type': 'file update',
-              'description': 'vars_additional.xml', 'type': 'OK' },
-            { 'module': 'Configuration Manager', 'obj_type': 'file update',
-              'description': 'autoload_configs/logfile.conf.xml', 'type': 'OK' }
-        ]
+        'error': [{
+            'module': 'Configuration Manager',
+            'obj_type': 'file update',
+            'description': 'vars_additional.xml',
+            'type': 'OK'
+        }, {
+            'module': 'Configuration Manager',
+            'obj_type': 'file update',
+            'description': 'autoload_configs/logfile.conf.xml',
+            'type': 'OK'
+        }]
     })
 
     exception = safe.library.raise_from_json(response)
