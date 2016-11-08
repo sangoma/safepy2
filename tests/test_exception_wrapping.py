@@ -152,6 +152,29 @@ def test_network_apply_exception():
     assert str(exception) == 'Apply changes failed: ' + '\n'.join(reasons)
 
 
+def test_apply_dict_list_exception():
+    reasons = [
+        'Configuration Manager - file update - vars_additional.xml - OK',
+        'Configuration Manager - file update - autoload_configs/logfile.conf.xml - OK'
+    ]
+
+    response = MockResponse({
+        'status': False,
+        'type': 'archive',
+        'method': 'restore',
+        'module': 'nsc',
+        'error': [
+            { 'module': 'Configuration Manager', 'obj_type': 'file update',
+              'description': 'vars_additional.xml', 'type': 'OK' },
+            { 'module': 'Configuration Manager', 'obj_type': 'file update',
+              'description': 'autoload_configs/logfile.conf.xml', 'type': 'OK' }
+        ]
+    })
+
+    exception = safe.library.raise_from_json(response)
+    assert str(exception) == 'Failed to apply changes: ' + '\n'.join(reasons)
+
+
 def test_commit_failed_exception():
     error_message = 'Default ipv4 gateway is not on eth0 subnet'
     response = MockResponse({

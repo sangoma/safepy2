@@ -98,7 +98,11 @@ def raise_from_json(r):
     error = data.get('error')
     message = None
     if isinstance(error, list):
-        message = '\n'.join(error)
+        if isinstance(next(iter(error), None), dict):
+            msglist = '\n'.join('{module} - {obj_type} - {description} - {type}'.format(**e) for e in error)
+            message = 'Failed to apply changes: {0}'.format(msglist)
+        else:
+            message = '\n'.join(error)
     elif isinstance(error, dict):
         reasons = error.get('reason')
         if isinstance(reasons, six.string_types):
